@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-[#FAFBFD] text-slate-900 antialiased selection:bg-brand-500 selection:text-white dark:bg-slate-950 dark:text-slate-100;
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    }
+}
+
+/* Custom scrollbars for clean look */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.7);
+}
+
+/* Smooth transitions */
+.transition-luxury {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Backward compatibility */
+.from-dolphin-blue {
+    --tw-gradient-from: #0284c7;
+}
+.to-dolphin-cyan {
+    --tw-gradient-to: #0ea5e9;
+}
+
+/* ==========================================================================
+   Skiper UI, Vengeance UI & Animaster Lib - GPU Optimized Keyframes (60 FPS)
+   ========================================================================== */
+
+@keyframes aurora-wave {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    50% {
+        transform: translateY(-14px) rotate(1.5deg) scale(1.05);
+    }
+}
+
+@keyframes kinetic-shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes marquee-infinite {
+    0% {
+        transform: translate3d(0, 0, 0);
+    }
+    100% {
+        transform: translate3d(-50%, 0, 0);
+    }
+}
+
+@keyframes glow-pulse-smooth {
+    0%, 100% {
+        opacity: 0.35;
+        box-shadow: 0 0 20px 2px rgba(14, 165, 233, 0.15);
+    }
+    50% {
+        opacity: 0.8;
+        box-shadow: 0 0 35px 6px rgba(14, 165, 233, 0.35);
+    }
+}
+
+.animate-aurora-mesh {
+    animation: aurora-wave 14s ease-in-out infinite;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+.animate-shimmer-text {
+    background-size: 250% 100%;
+    animation: kinetic-shimmer 7s linear infinite;
+    will-change: background-position;
+}
+
+.animate-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marquee-infinite 30s linear infinite;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+.animate-marquee-track:hover {
+    animation-play-state: paused;
+}
+
+.animate-glow-border {
+    animation: glow-pulse-smooth 5s ease-in-out infinite;
+    will-change: opacity, box-shadow;
+}
+
+/* Mobile Power Saver & Reduced Motion */
+@media (prefers-reduced-motion: reduce), (max-width: 640px) {
+    .animate-aurora-mesh {
+        animation: none !important;
+    }
+}
