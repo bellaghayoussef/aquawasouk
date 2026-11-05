@@ -1,0 +1,62 @@
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "AquawaSouk",
+    "documentationUrl": "https://aquawasouk.com/about",
+    "logoUrl": "https://aquawasouk.com/logo/logo.png"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:aquawasouk.com:api:product-catalog",
+      "displayName": "Catalogue et Recherche Produits AquawaSouk",
+      "type": "application/json",
+      "url": "https://aquawasouk.com/api/v1/products",
+      "description": "API publique permettant aux agents IA de rechercher des produits, consulter les prix en Dinars Tunisiens (TND), vérifier la disponibilité et explorer les catégories.",
+      "capabilities": [
+        "ProductSearch",
+        "CategoryListing",
+        "PriceLookup",
+        "StockAvailability"
+      ],
+      "tags": [
+        "ecommerce",
+        "tunisie",
+        "marketplace",
+        "produits",
+        "shopping"
+      ],
+      "representativeQueries": [
+        "Trouver des smartphones et ordinateurs portables sur AquawaSouk en Tunisie",
+        "Rechercher les meilleurs prix et promotions en dinars tunisiens",
+        "Consulter les boutiques officielles et vendeurs vérifiés"
+      ],
+      "version": "1.0.0",
+      "updatedAt": "2026-11-02T10:00:00Z"
+    },
+    {
+      "identifier": "urn:air:aquawasouk.com:agent:shopping-assistant",
+      "displayName": "Assistant d'Achat IA AquawaSouk",
+      "type": "application/json",
+      "url": "https://aquawasouk.com/api/chatbot/suggestions",
+      "description": "Assistant shopping intelligent pour orienter les acheteurs, comparer des articles et proposer des recommandations personnalisées.",
+      "capabilities": [
+        "ShoppingAdvice",
+        "ProductRecommendations",
+        "CustomerAssistance"
+      ],
+      "tags": [
+        "chatbot",
+        "ai-assistant",
+        "conseiller-shopping",
+        "recommandations"
+      ],
+      "representativeQueries": [
+        "Conseille-moi un cadeau high-tech pour un budget précis",
+        "Quels sont les produits les plus populaires sur la marketplace ?",
+        "Aide-moi à trouver un vendeur certifié avec livraison rapide"
+      ],
+      "version": "1.0.0",
+      "updatedAt": "2026-11-02T10:00:00Z"
+    }
+  ]
+}

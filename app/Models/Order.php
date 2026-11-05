@@ -20,6 +20,8 @@ class Order extends Model
         'shipping_address',
         'shipping_city',
         'shipping_postal_code',
+        'coupon_id',
+        'discount_amount',
         'shipping_country',
         'phone',
         'notes',
@@ -28,11 +30,17 @@ class Order extends Model
     protected $casts = [
         'total_amount' => 'decimal:2',
         'shipping_cost' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function coupon()
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function items()

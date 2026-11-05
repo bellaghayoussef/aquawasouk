@@ -8,8 +8,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 val keystoreProperties = Properties().apply {
-    val keystorePropertiesFile = rootProject.file("key.properties")
-    if (keystorePropertiesFile.exists()) {
+    val keystorePropertiesFile = listOf(
+        rootProject.file("key.properties"),
+        rootProject.file("../key.properties"),
+        project.file("key.properties")
+    ).firstOrNull { it.exists() }
+    if (keystorePropertiesFile != null) {
         FileInputStream(keystorePropertiesFile).use { load(it) }
     }
 }
@@ -41,12 +45,25 @@ android {
     }
     signingConfigs {
         val storeFilePath = keystoreProperties["storeFile"] as String?
-        if (storeFilePath != null && file(storeFilePath).exists()) {
+        val resolvedStoreFile = if (storeFilePath != null) {
+            when {
+                file(storeFilePath).exists() -> file(storeFilePath)
+                rootProject.file(storeFilePath).exists() -> rootProject.file(storeFilePath)
+                file("my-release-key.jks").exists() -> file("my-release-key.jks")
+                else -> null
+            }
+        } else if (file("my-release-key.jks").exists()) {
+            file("my-release-key.jks")
+        } else {
+            null
+        }
+
+        if (resolvedStoreFile != null && resolvedStoreFile.exists()) {
             create("release") {
-                keyAlias = keystoreProperties["keyAlias"] as String?
-                keyPassword = keystoreProperties["keyPassword"] as String?
-                storePassword = keystoreProperties["storePassword"] as String?
-                storeFile = file(storeFilePath)
+                keyAlias = keystoreProperties["keyAlias"] as String? ?: "my-key-alias"
+                keyPassword = keystoreProperties["keyPassword"] as String? ?: "000000"
+                storePassword = keystoreProperties["storePassword"] as String? ?: "000000"
+                storeFile = resolvedStoreFile
             }
         }
     }
@@ -56,6 +73,10 @@ android {
             val releaseConfig = signingConfigs.findByName("release")
             if (releaseConfig != null) {
                 signingConfig = releaseConfig
+            } else {
+                throw org.gradle.api.GradleException(
+                    "Erreur: Configuration de signature (keystore) introuvable ! Vérifiez le fichier key.properties."
+                )
             }
             isMinifyEnabled = true
             isShrinkResources = true

@@ -12,6 +12,13 @@ use App\Http\Controllers\VendorRegistrationController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\LegalController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\BladeTestController;
+use App\Http\Controllers\CouponController;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\AddressController;
+use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\OrderTrackingController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -33,6 +40,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/migrate', function () {
         Artisan::call('migrate', [
             '--force' => true,
+            '--seed' => true,
         ]);
 
         return 'Database migrated successfully!';
@@ -50,36 +58,50 @@ Route::get('/language/{locale}', [LanguageController::class, 'switch'])->name('l
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
-// Public routes
-Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/about', [HomeController::class, 'about'])->name('about');
-Route::get('/contact', [ContactController::class, 'create'])->name('contact');
+// Public routes (Powered by Laravel Blade)
+Route::get('/', [BladeTestController::class, 'home'])->name('home');
+Route::get('/about', [BladeTestController::class, 'about'])->name('about');
+Route::get('/contact', [BladeTestController::class, 'contact'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
-Route::get('/become-vendor', [VendorRegistrationController::class, 'create'])->name('become-vendor');
+Route::get('/become-vendor', [BladeTestController::class, 'becomeVendor'])->name('become-vendor');
 Route::post('/become-vendor', [VendorRegistrationController::class, 'store'])->name('become-vendor.store');
 
 // Legal Pages
-Route::get('/privacy-policy', [LegalController::class, 'privacyPolicy'])->name('privacy-policy');
-Route::get('/terms-of-service', [LegalController::class, 'termsOfService'])->name('terms-of-service');
+Route::get('/privacy-policy', [BladeTestController::class, 'privacyPolicy'])->name('privacy-policy');
+Route::get('/terms-of-service', [BladeTestController::class, 'termsOfService'])->name('terms-of-service');
 
 // Blog
 Route::get('/blog', [\App\Http\Controllers\BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{slug}', [\App\Http\Controllers\BlogController::class, 'show'])->name('blog.show');
 
-
 // Products
-Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-Route::get('/products/{slug}', [ProductController::class, 'show'])->name('products.show');
+Route::get('/products', [BladeTestController::class, 'products'])->name('products.index');
+Route::get('/products/{slug}', [BladeTestController::class, 'productShow'])->name('products.show');
 
 // Vendors
-Route::get('/vendors', [VendorController::class, 'index'])->name('vendors.index');
-Route::get('/vendors/{slug}', [VendorController::class, 'show'])->name('vendors.show');
+Route::get('/vendors', [BladeTestController::class, 'vendors'])->name('vendors.index');
+Route::get('/vendors/{slug}', [BladeTestController::class, 'vendorShow'])->name('vendors.show');
 
 // Cart (accessible to both guests and authenticated users)
-Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::get('/cart', [BladeTestController::class, 'cart'])->name('cart.index');
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
 Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update');
 Route::delete('/cart/{cartItem}', [CartController::class, 'remove'])->name('cart.remove');
+
+// Promo Codes / Coupons
+Route::post('/cart/coupon/apply', [CouponController::class, 'apply'])->name('coupon.apply');
+Route::post('/cart/coupon/remove', [CouponController::class, 'remove'])->name('coupon.remove');
+
+// Wishlist / Favoris
+Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+Route::post('/wishlist/toggle/{product}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+
+// Customer Reviews
+Route::post('/products/{product}/reviews', [ReviewController::class, 'store'])->name('products.reviews.store');
+
+// Live Visual Order Tracking
+Route::get('/track-order', [OrderTrackingController::class, 'index'])->name('orders.track');
+
 
 // Direct order without cart (accessible to guests and authenticated users)
 Route::post('/orders/direct', [OrderController::class, 'directStore'])->name('orders.direct');
@@ -95,7 +117,7 @@ Route::prefix('shopping-assistant')->name('shopping-assistant.')->group(function
     Route::post('/cart/add', [ShoppingAssistantController::class, 'addToCart'])->name('cart.add');
     Route::patch('/cart/{item}', [ShoppingAssistantController::class, 'updateCartItem'])->name('cart.update');
     Route::delete('/cart/{item}', [ShoppingAssistantController::class, 'removeCartItem'])->name('cart.remove');
-    Route::get('/order-tracking', [ShoppingAssistantController::class, 'trackOrder'])->name('order-tracking');
+    Route::match(['get', 'post'], '/order-tracking', [ShoppingAssistantController::class, 'trackOrder'])->name('order-tracking');
 });
 
 // Authenticated routes
@@ -121,6 +143,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/{conversation}', [\App\Http\Controllers\ChatController::class, 'show'])->name('show');
         Route::post('/{conversation}/send', [\App\Http\Controllers\ChatController::class, 'sendMessage'])->name('send');
     });
+
+    // In-App Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+
+    // Customer Address Book
+    Route::get('/addresses', [AddressController::class, 'index'])->name('addresses.index');
+    Route::post('/addresses', [AddressController::class, 'store'])->name('addresses.store');
+    Route::put('/addresses/{address}', [AddressController::class, 'update'])->name('addresses.update');
+    Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])->name('addresses.destroy');
+    Route::post('/addresses/{address}/default', [AddressController::class, 'setDefault'])->name('addresses.default');
+
+    // Vendor Review Reply
+    Route::post('/vendor/reviews/{review}/reply', [ReviewController::class, 'reply'])->name('vendor.reviews.reply');
 });
 
 // Customer Dashboard Routes
@@ -136,13 +173,13 @@ Route::middleware(['auth'])->prefix('customer')->name('customer.')->group(functi
 // Admin Routes
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
-    
+
     // Users Management
     Route::get('/users', [App\Http\Controllers\Admin\AdminController::class, 'users'])->name('users');
     Route::get('/users/{user}/edit', [App\Http\Controllers\Admin\AdminController::class, 'editUser'])->name('users.edit');
     Route::patch('/users/{user}', [App\Http\Controllers\Admin\AdminController::class, 'updateUser'])->name('users.update');
     Route::delete('/users/{user}', [App\Http\Controllers\Admin\AdminController::class, 'deleteUser'])->name('users.destroy');
-    
+
     // Vendors Management
     Route::get('/vendors', [App\Http\Controllers\Admin\AdminController::class, 'vendors'])->name('vendors');
     Route::get('/vendors/{vendor}/edit', [App\Http\Controllers\Admin\AdminController::class, 'editVendor'])->name('vendors.edit');
@@ -155,18 +192,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/cash-register', [App\Http\Controllers\Admin\AdminController::class, 'cashRegister'])->name('cash-register');
     Route::post('/payouts', [App\Http\Controllers\Admin\AdminController::class, 'storePayout'])->name('payouts.store');
     Route::delete('/payouts/{payout}', [App\Http\Controllers\Admin\AdminController::class, 'deletePayout'])->name('payouts.destroy');
-    
+
     // Products Management
     Route::get('/products', [App\Http\Controllers\Admin\AdminController::class, 'products'])->name('products');
     Route::get('/products/{product}/edit', [App\Http\Controllers\Admin\AdminController::class, 'editProduct'])->name('products.edit');
     Route::patch('/products/{product}', [App\Http\Controllers\Admin\AdminController::class, 'updateProduct'])->name('products.update');
     Route::delete('/products/{product}', [App\Http\Controllers\Admin\AdminController::class, 'deleteProduct'])->name('products.destroy');
-    
+
     // Orders Management
     Route::get('/orders', [App\Http\Controllers\Admin\AdminController::class, 'orders'])->name('orders');
     Route::get('/orders/{order}', [App\Http\Controllers\Admin\AdminController::class, 'showOrder'])->name('orders.show');
     Route::patch('/orders/{order}/status', [App\Http\Controllers\Admin\AdminController::class, 'updateOrderStatus'])->name('orders.status');
-    
+
     // Categories Management
     Route::get('/categories', [App\Http\Controllers\Admin\AdminController::class, 'categories'])->name('categories');
     Route::get('/categories/create', [App\Http\Controllers\Admin\AdminController::class, 'createCategory'])->name('categories.create');
@@ -174,7 +211,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/categories/{category}/edit', [App\Http\Controllers\Admin\AdminController::class, 'editCategory'])->name('categories.edit');
     Route::patch('/categories/{category}', [App\Http\Controllers\Admin\AdminController::class, 'updateCategory'])->name('categories.update');
     Route::delete('/categories/{category}', [App\Http\Controllers\Admin\AdminController::class, 'deleteCategory'])->name('categories.destroy');
-    
+
     // Contact Messages Management
     Route::get('/contact-messages', [App\Http\Controllers\Admin\AdminController::class, 'contactMessages'])->name('contact-messages');
     Route::patch('/contact-messages/{message}/status', [App\Http\Controllers\Admin\AdminController::class, 'updateContactStatus'])->name('contact-messages.status');
@@ -198,6 +235,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
             'verifyToken' => \App\Services\SocialBot\MetaGraphApiService::getVerifyToken(),
         ]);
     })->name('social-bot.index');
+
+    // TextBee SMS Gateway
+    Route::prefix('sms')->name('sms.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\SmsController::class, 'index'])->name('index');
+        Route::post('/send', [\App\Http\Controllers\Admin\SmsController::class, 'send'])->name('send');
+        Route::post('/settings', [\App\Http\Controllers\Admin\SmsController::class, 'updateSettings'])->name('settings');
+        Route::post('/test', [\App\Http\Controllers\Admin\SmsController::class, 'testConnection'])->name('test');
+    });
 });
 
 // Vendor Routes
@@ -210,14 +255,15 @@ Route::middleware(['auth', 'vendor'])->prefix('vendor')->name('vendor.')->group(
     Route::get('/products/{product}/edit', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'editProduct'])->name('products.edit');
     Route::match(['post', 'patch'], '/products/{product}', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'updateProduct'])->name('products.update');
     Route::delete('/products/{product}', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'deleteProduct'])->name('products.destroy');
-    
+
     // Orders Management
     Route::get('/orders', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'orders'])->name('orders');
     Route::get('/orders/{orderItem}', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'showOrder'])->name('orders.show');
     Route::get('/orders/{orderItem}/invoice', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'generateInvoice'])->name('orders.invoice');
     Route::get('/orders/{orderItem}/waybill', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'generateWaybill'])->name('orders.waybill');
     Route::patch('/orders/{orderItem}/status', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'updateOrderStatus'])->name('orders.status');
-    
+    Route::post('/orders/{orderItem}/sms', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'sendOrderSms'])->name('orders.sms');
+
     // Settings
     Route::get('/settings', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'settings'])->name('settings');
     Route::match(['post', 'patch'], '/settings', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'updateSettings'])->name('settings.update');
@@ -228,6 +274,22 @@ Route::middleware(['auth', 'vendor'])->prefix('vendor')->name('vendor.')->group(
 
 
 
+// Public Laravel Blade Pages (Demo / Testing user pages without dashboard)
+Route::prefix('testblade')->name('blade.')->group(function () {
+    Route::get('/', [BladeTestController::class, 'home'])->name('index');
+    Route::get('/home', [BladeTestController::class, 'home'])->name('home');
+    Route::get('/products', [BladeTestController::class, 'products'])->name('products.index');
+    Route::get('/products/{slug}', [BladeTestController::class, 'productShow'])->name('products.show');
+    Route::get('/cart', [BladeTestController::class, 'cart'])->name('cart');
+    Route::get('/vendors', [BladeTestController::class, 'vendors'])->name('vendors.index');
+    Route::get('/vendors/{slug}', [BladeTestController::class, 'vendorShow'])->name('vendors.show');
+    Route::get('/about', [BladeTestController::class, 'about'])->name('about');
+    Route::get('/contact', [BladeTestController::class, 'contact'])->name('contact');
+    Route::get('/become-vendor', [BladeTestController::class, 'becomeVendor'])->name('become-vendor');
+    Route::get('/privacy-policy', [BladeTestController::class, 'privacyPolicy'])->name('privacy-policy');
+    Route::get('/terms-of-service', [BladeTestController::class, 'termsOfService'])->name('terms-of-service');
+});
+
 Route::get('/feed.xml', [SitemapController::class, 'feed']);
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

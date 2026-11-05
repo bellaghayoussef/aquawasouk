@@ -47,5 +47,4 @@ return [
         'instagram_access_token' => env('META_INSTAGRAM_ACCESS_TOKEN'),
     ],
 
-
 ];

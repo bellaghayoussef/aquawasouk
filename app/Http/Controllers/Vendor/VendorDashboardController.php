@@ -28,6 +28,7 @@ class VendorDashboardController extends Controller
             'active_products' => $vendor->products()->where('status', 'active')->count(),
             'total_orders' => OrderItem::where('vendor_id', $vendor->id)->count(),
             'total_sales' => round($vendor->getTotalSales(), 2),
+            'total_views' => (int) $vendor->products()->sum('views'),
             'pending_orders' => OrderItem::where('vendor_id', $vendor->id)
                 ->where('status', 'pending')
                 ->count(),
@@ -424,14 +425,15 @@ class VendorDashboardController extends Controller
                 ->update(['status' => $request->status]);
                 Order::where('id', $orderItem->order_id)->update(['status' => $request->status]);
 
-            // Send email to customer
+            // Send email & in-app notification to customer
             try {
                 $order = \App\Models\Order::with('user')->find($orderItem->order_id);
                 if ($order && $order->user) {
                      \Illuminate\Support\Facades\Mail::to($order->user->email)->send(new \App\Mail\OrderStatusUpdated($order));
+                     $order->user->notify(new \App\Notifications\OrderStatusNotification($order, $orderItem->status, $request->status));
                 }
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Failed to send order status email: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::error('Failed to send order status notifications: ' . $e->getMessage());
             }
         } else {
             // Update only this item
@@ -482,5 +484,41 @@ class VendorDashboardController extends Controller
         $vendor->update($validated);
 
         return back()->with('success', 'Settings updated successfully');
+    }
+
+    /**
+     * Send SMS to order customer via TextBee Gateway
+     */
+    public function sendOrderSms(Request $request, OrderItem $orderItem)
+    {
+        // Ensure the order item belongs to the vendor
+        if ($orderItem->vendor_id !== auth()->user()->vendor->id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'message' => 'required|string|max:500',
+            'phone' => 'nullable|string|max:30',
+        ]);
+
+        $order = $orderItem->order;
+        $phone = $request->filled('phone') ? $request->input('phone') : $order->phone;
+
+        if (empty($phone)) {
+            return back()->with('error', 'Aucun numéro de téléphone associé à cette commande.');
+        }
+
+        $smsService = app(\App\Services\SmsService::class);
+        $result = $smsService->send(
+            recipients: $phone,
+            message: $request->input('message'),
+            adminId: auth()->id()
+        );
+
+        if ($result['success']) {
+            return back()->with('success', 'SMS envoyé au client avec succès !');
+        }
+
+        return back()->with('error', 'Échec de l\'envoi : ' . $result['message']);
     }
 }

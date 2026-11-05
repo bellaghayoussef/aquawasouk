@@ -111,19 +111,37 @@ class OrderController extends Controller
             return $item->quantity * $item->price;
         });
 
-        // Total amount includes shipping
-        $total = $subtotal + $shippingCost;
+        // Check for applied coupon discount
+        $discountAmount = 0.00;
+        $couponId = null;
+        $coupon = null;
+        if (session()->has('applied_coupon')) {
+            $applied = session('applied_coupon');
+            $coupon = \App\Models\Coupon::find($applied['id'] ?? null);
+            if ($coupon && $coupon->isValid((float) $subtotal, auth()->id(), $vendor->id)['valid']) {
+                $discountAmount = $coupon->calculateDiscount((float) $subtotal);
+                $couponId = $coupon->id;
+            }
+        }
+
+        // Total amount includes shipping minus discount
+        $total = max(0, ($subtotal - $discountAmount)) + $shippingCost;
+
+        // Payment method
+        $paymentMethod = $request->input('payment_method', 'cod');
 
         // Create order and items within atomic database transaction
-        $order = DB::transaction(function () use ($request, $total, $shippingCost, $vendor, $subtotal, $vendorItems) {
+        $order = DB::transaction(function () use ($request, $total, $shippingCost, $vendor, $subtotal, $vendorItems, $couponId, $discountAmount, $coupon, $paymentMethod) {
             $order = Order::create([
                 'order_number' => 'ORD-' . strtoupper(Str::random(10)),
                 'user_id' => auth()->id(),
                 'total_amount' => $total,
                 'shipping_cost' => $shippingCost,
+                'coupon_id' => $couponId,
+                'discount_amount' => $discountAmount,
                 'status' => 'pending',
                 'payment_status' => 'pending',
-                'payment_method' => 'cod', // Force Cash on Delivery
+                'payment_method' => $paymentMethod,
                 'shipping_address' => $request->shipping_address,
                 'shipping_city' => $request->shipping_city,
                 'shipping_postal_code' => $request->shipping_postal_code,
@@ -131,6 +149,18 @@ class OrderController extends Controller
                 'phone' => $request->phone,
                 'notes' => $request->notes,
             ]);
+
+            // Track coupon usage
+            if ($coupon) {
+                $coupon->increment('times_used');
+                \App\Models\CouponUsage::create([
+                    'coupon_id' => $coupon->id,
+                    'user_id' => auth()->id(),
+                    'order_id' => $order->id,
+                    'discount_amount' => $discountAmount,
+                ]);
+                session()->forget('applied_coupon');
+            }
 
             // Calculate admin profit margin for this vendor based on order subtotal
             $totalAdminMargin = $vendor->calculateAdminMargin((float) $subtotal);
@@ -159,6 +189,11 @@ class OrderController extends Controller
 
             return $order;
         });
+
+        // Trigger in-app notification to customer
+        try {
+            auth()->user()->notify(new \App\Notifications\OrderStatusNotification($order, 'none', 'pending'));
+        } catch (\Throwable $e) {}
 
         // Send email to Vendor
         try {
@@ -194,6 +229,7 @@ class OrderController extends Controller
             'shipping_city' => 'required|string|max:100',
             'shipping_postal_code' => 'nullable|string|max:20',
             'notes' => 'nullable|string|max:1000',
+            'payment_method' => 'nullable|string|in:cod',
         ]);
 
         $product = Product::with('vendor.user')->findOrFail($request->product_id);
@@ -228,8 +264,10 @@ class OrderController extends Controller
         $subtotal = $unitPrice * (int) $request->quantity;
         $total = $subtotal + $shippingCost;
 
+        $paymentMethod = $request->input('payment_method', 'cod');
+
         // Create Order and items within atomic database transaction
-        $order = DB::transaction(function () use ($request, $user, $total, $shippingCost, $vendor, $subtotal, $product, $unitPrice) {
+        $order = DB::transaction(function () use ($request, $user, $total, $shippingCost, $vendor, $subtotal, $product, $unitPrice, $paymentMethod) {
             $order = Order::create([
                 'order_number' => 'ORD-' . strtoupper(Str::random(10)),
                 'user_id' => $user->id,
@@ -237,7 +275,7 @@ class OrderController extends Controller
                 'shipping_cost' => $shippingCost,
                 'status' => 'pending',
                 'payment_status' => 'pending',
-                'payment_method' => 'cod', // Cash on Delivery
+                'payment_method' => $paymentMethod,
                 'shipping_address' => $request->shipping_address,
                 'shipping_city' => $request->shipping_city,
                 'shipping_postal_code' => $request->shipping_postal_code ?? '1000',

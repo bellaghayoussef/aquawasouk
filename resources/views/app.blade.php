@@ -19,21 +19,31 @@
         <!-- Canonical URL -->
         <link rel="canonical" href="{{ url()->current() }}">
         
+        @php
+            $currentProduct = $page['props']['product'] ?? null;
+            $currentSeo = $page['props']['seo'] ?? null;
+            
+            $ogTitle = $currentSeo['title'] ?? ($currentProduct ? ($currentProduct['name'] . ' - AquawaSouk') : config('app.name', 'AquawaSouk') . ' - Marketplace E-commerce en Tunisie');
+            $ogDescription = $currentSeo['description'] ?? ($currentProduct ? ($currentProduct['description'] ? \Illuminate\Support\Str::limit(strip_tags($currentProduct['description']), 160) : 'Achetez ' . $currentProduct['name'] . ' sur AquawaSouk avec livraison rapide partout en Tunisie et paiement à la livraison.') : 'Achetez et vendez en ligne en Tunisie sur AquawaSouk : High-Tech, Mode, Maison, Électroménager, Beauté, Sport et Bricolage. Livraison rapide dans tous les gouvernorats et paiement à la livraison.');
+            $ogImage = $currentSeo['image'] ?? ($currentProduct && !empty($currentProduct['primary_image']['image_path']) ? asset('uploads/' . $currentProduct['primary_image']['image_path']) : asset('uploads/cover.jpeg'));
+            $ogUrl = url()->current();
+        @endphp
+
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website">
-        <meta property="og:url" content="{{ url()->current() }}">
-        <meta property="og:title" content="{{ config('app.name', 'AquawaSouk') }} - Marketplace E-commerce Multi-Catégories en Tunisie">
-        <meta property="og:description" content="Achetez et vendez en ligne en Tunisie sur AquawaSouk : High-Tech, Mode, Maison, Électroménager, Beauté, Sport et Bricolage. Livraison rapide dans tous les gouvernorats et paiement à la livraison.">
-        <meta property="og:image" content="{{ asset('uploads/cover.jpeg') }}">
+        <meta property="og:url" content="{{ $ogUrl }}">
+        <meta property="og:title" content="{{ $ogTitle }}">
+        <meta property="og:description" content="{{ $ogDescription }}">
+        <meta property="og:image" content="{{ $ogImage }}">
         <meta property="og:site_name" content="{{ config('app.name', 'AquawaSouk') }}">
         <meta property="og:locale" content="fr_TN">
         
         <!-- Twitter -->
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:url" content="{{ url()->current() }}">
-        <meta name="twitter:title" content="{{ config('app.name', 'AquawaSouk') }} - Marketplace E-commerce en Tunisie">
-        <meta name="twitter:description" content="Votre destination shopping en ligne en Tunisie : High-Tech, Mode, Maison, Beauté, Électroménager et plus au meilleur prix avec livraison partout en Tunisie.">
-        <meta name="twitter:image" content="{{ asset('uploads/cover.jpeg') }}">
+        <meta name="twitter:url" content="{{ $ogUrl }}">
+        <meta name="twitter:title" content="{{ $ogTitle }}">
+        <meta name="twitter:description" content="{{ $ogDescription }}">
+        <meta name="twitter:image" content="{{ $ogImage }}">
         
         <!-- Additional SEO -->
         <meta name="theme-color" content="#0ea5e9">
@@ -54,14 +64,32 @@
         @inertiaHead
 
         <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-4R8M0Q6V67"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-4R8M0Q6V67"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
 
-  gtag('config', 'G-4R8M0Q6V67');
-</script>
+          gtag('config', 'G-4R8M0Q6V67');
+        </script>
+
+        <!-- Meta Pixel Code -->
+        <script>
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '1891669474777705');
+        fbq('track', 'PageView');
+        </script>
+        <noscript><img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=1891669474777705&ev=PageView&noscript=1"
+        /></noscript>
+        <!-- End Meta Pixel Code -->
     </head>
     <body class="font-sans antialiased">
         @inertia

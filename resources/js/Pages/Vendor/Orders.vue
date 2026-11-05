@@ -1,9 +1,10 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import DashboardLayout from '@/Layouts/DashboardLayout.vue';
 import TableFilters from '@/Components/TableFilters.vue';
+import { ref, computed } from 'vue';
 
-defineProps({
+const props = defineProps({
     orders: Object,
     vendor: Object,
     filters: Object,
@@ -32,6 +33,65 @@ const formatDate = (dateString) => {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
+    });
+};
+
+// SMS Modal State
+const showSmsModal = ref(false);
+const activeOrderGroup = ref(null);
+const smsForm = useForm({
+    phone: '',
+    message: '',
+});
+
+const smsCharCount = computed(() => smsForm.message.length);
+const smsSegments = computed(() => {
+    if (smsCharCount.value === 0) return 0;
+    if (smsCharCount.value <= 160) return 1;
+    return Math.ceil(smsCharCount.value / 153);
+});
+
+const applySmsTemplate = (type) => {
+    if (!activeOrderGroup.value) return;
+    const orderGroup = activeOrderGroup.value;
+    const customerName = orderGroup.order.user?.name || 'Cher client';
+    const orderNum = orderGroup.order.order_number;
+    const shopName = props.vendor?.shop_name || 'AquawaSouk';
+    const amountStr = formatPrice(orderGroup.total);
+
+    switch (type) {
+        case 'shipped':
+            smsForm.message = `Bonjour ${customerName}, votre commande #${orderNum} chez ${shopName} est expédiée ! Montant à régler à la livraison : ${amountStr}.`;
+            break;
+        case 'processing':
+            smsForm.message = `Bonjour ${customerName}, nous préparons votre commande #${orderNum} chez ${shopName}. Elle sera bientôt remise au livreur.`;
+            break;
+        case 'address':
+            smsForm.message = `Bonjour ${customerName}, nous tentons de vous joindre pour confirmer l'adresse de votre commande #${orderNum}. Merci de nous rappeler. ${shopName}`;
+            break;
+        case 'delivery_today':
+            smsForm.message = `Bonjour ${customerName}, votre commande #${orderNum} (${shopName}) vous sera livrée aujourd'hui. Merci de garder votre téléphone disponible.`;
+            break;
+    }
+};
+
+const openSmsModal = (orderGroup, templateType = 'shipped') => {
+    activeOrderGroup.value = orderGroup;
+    smsForm.phone = orderGroup.order.phone || '';
+    applySmsTemplate(templateType);
+    showSmsModal.value = true;
+};
+
+const submitSms = () => {
+    if (!activeOrderGroup.value?.items?.[0]?.id) return;
+    const orderItemId = activeOrderGroup.value.items[0].id;
+
+    smsForm.post(route('vendor.orders.sms', orderItemId), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showSmsModal.value = false;
+            activeOrderGroup.value = null;
+        },
     });
 };
 </script>
@@ -118,6 +178,15 @@ const formatDate = (dateString) => {
                             </div>
 
                             <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    @click="openSmsModal(orderGroup, 'shipped')"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/40 text-xs font-bold rounded-xl transition cursor-pointer shadow-xs"
+                                    title="Envoyer un SMS au client"
+                                >
+                                    <span>📱</span>
+                                    <span>SMS</span>
+                                </button>
                                 <a
                                     :href="route('vendor.orders.waybill', orderGroup.items[0].id)"
                                     target="_blank"
@@ -144,7 +213,19 @@ const formatDate = (dateString) => {
                         <!-- Order Items Preview -->
                         <div class="px-6 py-4">
                             <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
-                                <span>Client : <strong class="text-slate-800 dark:text-slate-200">{{ orderGroup.order.user.name }}</strong></span>
+                                <div class="flex items-center gap-2">
+                                    <span>Client : <strong class="text-slate-800 dark:text-slate-200">{{ orderGroup.order.user.name }}</strong></span>
+                                    <button
+                                        v-if="orderGroup.order.phone"
+                                        type="button"
+                                        @click="openSmsModal(orderGroup, 'address')"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-sky-100 dark:hover:bg-sky-900/40 text-slate-600 dark:text-slate-400 hover:text-sky-600 font-mono text-[11px] transition cursor-pointer"
+                                        title="Cliquer pour envoyer un SMS à ce numéro"
+                                    >
+                                        <span>📞</span>
+                                        <span>{{ orderGroup.order.phone }}</span>
+                                    </button>
+                                </div>
                                 <span>{{ orderGroup.items.length }} article(s)</span>
                             </div>
 
@@ -214,6 +295,131 @@ const formatDate = (dateString) => {
                         />
                     </nav>
                 </div>
+            </div>
+        </div>
+
+        <!-- SMS Modal -->
+        <div 
+            v-if="showSmsModal && activeOrderGroup" 
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            @click.self="showSmsModal = false"
+        >
+            <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 transform transition-all animate-in fade-in zoom-in duration-200">
+                <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 flex items-center justify-center text-lg">
+                            📱
+                        </div>
+                        <div>
+                            <h3 class="text-base font-black text-slate-900 dark:text-white">
+                                Envoyer un SMS au client
+                            </h3>
+                            <p class="text-xs text-slate-500">
+                                Commande #{{ activeOrderGroup.order.order_number }} • {{ activeOrderGroup.order.user.name }}
+                            </p>
+                        </div>
+                    </div>
+                    <button 
+                        type="button" 
+                        @click="showSmsModal = false" 
+                        class="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <form @submit.prevent="submitSms" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                            Numéro de téléphone du client
+                        </label>
+                        <input 
+                            type="text" 
+                            v-model="smsForm.phone" 
+                            required
+                            placeholder="ex: 26260262 ou +216..." 
+                            class="w-full px-4 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-sky-500 outline-hidden"
+                        />
+                    </div>
+
+                    <!-- Quick templates -->
+                    <div>
+                        <span class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                            Modèles rapides :
+                        </span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button 
+                                type="button" 
+                                @click="applySmsTemplate('shipped')"
+                                class="px-3 py-2 text-left rounded-xl bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition cursor-pointer flex items-center gap-1.5"
+                            >
+                                <span>🚚</span>
+                                <span class="truncate">Colis expédié</span>
+                            </button>
+                            <button 
+                                type="button" 
+                                @click="applySmsTemplate('processing')"
+                                class="px-3 py-2 text-left rounded-xl bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition cursor-pointer flex items-center gap-1.5"
+                            >
+                                <span>📦</span>
+                                <span class="truncate">En préparation</span>
+                            </button>
+                            <button 
+                                type="button" 
+                                @click="applySmsTemplate('delivery_today')"
+                                class="px-3 py-2 text-left rounded-xl bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition cursor-pointer flex items-center gap-1.5"
+                            >
+                                <span>⚡</span>
+                                <span class="truncate">Livraison aujourd'hui</span>
+                            </button>
+                            <button 
+                                type="button" 
+                                @click="applySmsTemplate('address')"
+                                class="px-3 py-2 text-left rounded-xl bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition cursor-pointer flex items-center gap-1.5"
+                            >
+                                <span>📞</span>
+                                <span class="truncate">Confirmation adresse</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Message content -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                Message SMS
+                            </label>
+                            <span class="text-[11px] text-slate-400">
+                                {{ smsCharCount }} / 160 car. ({{ smsSegments }} SMS)
+                            </span>
+                        </div>
+                        <textarea 
+                            v-model="smsForm.message" 
+                            rows="4" 
+                            required
+                            placeholder="Saisissez votre message..."
+                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-sky-500 outline-hidden leading-relaxed"
+                        ></textarea>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-2">
+                        <button 
+                            type="button" 
+                            @click="showSmsModal = false"
+                            class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+                        >
+                            Annuler
+                        </button>
+                        <button 
+                            type="submit" 
+                            :disabled="smsForm.processing"
+                            class="px-5 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                        >
+                            <span v-if="smsForm.processing" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <span>🚀 Envoyer le SMS</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </DashboardLayout>

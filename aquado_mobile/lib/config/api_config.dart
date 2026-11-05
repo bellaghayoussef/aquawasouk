@@ -5,7 +5,7 @@ class ApiConfig {
   // Change this based on your environment
 
   // OPTION 1: Android Emulator (Default)
-  static const String baseUrl = 'http://192.168.1.101:8520/api/v1';
+  static const String baseUrl = 'http://aquawasouk.com/api/v1';
 
   // OPTION 2: iOS Simulator (Uncomment to use)
   // static const String baseUrl = 'http://localhost/api/v1';
@@ -26,7 +26,7 @@ class ApiConfig {
   // Base URL for images (usually same as API without /api/v1)
 
   // For local development
-  static const String imageBaseUrl = 'http://192.168.1.101:8520/uploads';
+  static const String imageBaseUrl = 'http://aquawasouk.com/uploads';
 
   // For iOS Simulator
   // static const String imageBaseUrl = 'http://localhost';

@@ -13,12 +13,21 @@ class Review extends Model
         'user_id',
         'product_id',
         'rating',
+        'title',
         'comment',
+        'images',
         'is_approved',
+        'verified_purchase',
+        'vendor_reply',
+        'vendor_replied_at',
     ];
 
     protected $casts = [
         'is_approved' => 'boolean',
+        'verified_purchase' => 'boolean',
+        'images' => 'array',
+        'vendor_replied_at' => 'datetime',
+        'rating' => 'integer',
     ];
 
     public function user()
@@ -34,5 +43,10 @@ class Review extends Model
     public function scopeApproved($query)
     {
         return $query->where('is_approved', true);
+    }
+
+    public function scopeVerified($query)
+    {
+        return $query->where('verified_purchase', true);
     }
 }

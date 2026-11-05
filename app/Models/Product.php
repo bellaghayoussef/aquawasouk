@@ -95,6 +95,34 @@ class Product extends Model
         return $this->hasMany(Review::class);
     }
 
+    public function approvedReviews()
+    {
+        return $this->hasMany(Review::class)->where('is_approved', true);
+    }
+
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    public function getAverageRatingAttribute(): float
+    {
+        return round((float) $this->approvedReviews()->avg('rating') ?: 5.0, 1);
+    }
+
+    public function getReviewsCountAttribute(): int
+    {
+        return (int) $this->approvedReviews()->count();
+    }
+
+    public function isFavoritedBy(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        return $this->wishlists()->where('user_id', $user->id)->exists();
+    }
+
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
@@ -112,9 +140,9 @@ class Product extends Model
     }
 
     // Helpers
-    public function getCurrentPriceAttribute()
+    public function getCurrentPriceAttribute(): float
     {
-        return $this->discount_price ?? $this->price;
+        return (float) ($this->hasDiscount() ? $this->discount_price : $this->price);
     }
 
     public function hasDiscount()
@@ -128,5 +156,31 @@ class Product extends Model
             return 0;
         }
         return round((($this->price - $this->discount_price) / $this->price) * 100);
+    }
+
+    public function getImageUrlAttribute(): string
+    {
+        if ($this->relationLoaded('primaryImage') && $this->primaryImage && !empty($this->primaryImage->image_path)) {
+            $path = $this->primaryImage->image_path;
+            return (str_starts_with($path, 'http://') || str_starts_with($path, 'https://'))
+                ? $path
+                : asset('uploads/' . ltrim($path, '/'));
+        }
+
+        if ($this->relationLoaded('images') && $this->images->isNotEmpty()) {
+            $path = $this->images->first()->image_path;
+            return (str_starts_with($path, 'http://') || str_starts_with($path, 'https://'))
+                ? $path
+                : asset('uploads/' . ltrim($path, '/'));
+        }
+
+        if ($this->primaryImage && !empty($this->primaryImage->image_path)) {
+            $path = $this->primaryImage->image_path;
+            return (str_starts_with($path, 'http://') || str_starts_with($path, 'https://'))
+                ? $path
+                : asset('uploads/' . ltrim($path, '/'));
+        }
+
+        return asset('uploads/cover.jpeg');
     }
 }

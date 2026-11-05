@@ -1,12 +1,12 @@
 name: aquawasouk
 description: A beautiful Flutter e-commerce mobile app for Aquado
 
-publish_to: 'none'
+publish_to: "none"
 
-version: 1.0.0+5
+version: 1.0.0+6
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -29,7 +29,7 @@ dependencies:
   # HTTP & API
   http: ^1.1.2
   dio: ^5.4.0
-  
+
   # Authentication
   google_sign_in: ^6.2.1
 
@@ -60,9 +60,8 @@ flutter_launcher_icons:
   image_path: "assets/images/logo.png" # Path to your icon image
 
 flutter:
-  uses-material-design: true
-
-
+  uses-material-design:
+    true
 
     # Optional: specify different icons for platforms
     # image_path_android: "assets/icon/android.png"
@@ -72,4 +71,3 @@ flutter:
 
   assets:
     - assets/images/
-
