@@ -3,7 +3,7 @@ description: A beautiful Flutter e-commerce mobile app for Aquado
 
 publish_to: "none"
 
-version: 1.0.0+6
+version: 1.0.3+9
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

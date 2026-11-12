@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../config/theme.dart';
 import '../../orders/orders_screen.dart';
+import '../../vendor/vendor_dashboard_screen.dart';
+import '../../admin/admin_vendors_screen.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -29,6 +31,7 @@ class ProfileTab extends StatelessWidget {
           final user = authProvider.user;
           final isAuthenticated = authProvider.isAuthenticated;
           final isVendor = authProvider.isVendor;
+          final isAdmin = authProvider.isAdmin;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
@@ -44,7 +47,7 @@ class ProfileTab extends StatelessWidget {
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -58,9 +61,9 @@ class ProfileTab extends StatelessWidget {
                         height: 64,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppTheme.primaryLight.withOpacity(0.15),
+                          color: AppTheme.primaryLight.withValues(alpha: 0.15),
                           border: Border.all(
-                            color: AppTheme.primaryLight.withOpacity(0.3),
+                            color: AppTheme.primaryLight.withValues(alpha: 0.3),
                             width: 2,
                           ),
                         ),
@@ -116,7 +119,7 @@ class ProfileTab extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            if (isAuthenticated && isVendor) ...[
+                            if (isAuthenticated && isAdmin) ...[
                               const SizedBox(height: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -124,8 +127,44 @@ class ProfileTab extends StatelessWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      AppTheme.primaryLight.withOpacity(0.12),
+                                  color: const Color(0xFF0284C7)
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: const Color(0xFF0284C7)
+                                        .withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.admin_panel_settings_rounded,
+                                      size: 14,
+                                      color: Color(0xFF0284C7),
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Administrateur',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF0284C7),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else if (isAuthenticated && isVendor) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryLight
+                                      .withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: const Row(
@@ -206,6 +245,44 @@ class ProfileTab extends StatelessWidget {
                           },
                         ),
                         const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        if (isAdmin) ...[
+                          _buildMenuItem(
+                            context,
+                            icon: Icons.admin_panel_settings_rounded,
+                            iconColor: const Color(0xFF0284C7),
+                            title: 'Validation des Boutiques (Admin)',
+                            subtitle:
+                                'Examiner, approuver ou suspendre les boutiques',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AdminVendorsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        ],
+                        if (isVendor) ...[
+                          _buildMenuItem(
+                            context,
+                            icon: Icons.storefront_rounded,
+                            iconColor: const Color(0xFFF59E0B),
+                            title: 'Espace Vendeur',
+                            subtitle:
+                                'Gérer vos produits, commandes et statistiques',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const VendorDashboardScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        ],
                       ],
                       _buildMenuItem(
                         context,
@@ -361,7 +438,7 @@ class ProfileTab extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, size: 20, color: iconColor),

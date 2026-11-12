@@ -53,7 +53,7 @@ class _CartTabState extends State<CartTab> with AutomaticKeepAliveClientMixin {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppTheme.errorColor.withOpacity(0.1),
+                        color: AppTheme.errorColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -93,7 +93,7 @@ class _CartTabState extends State<CartTab> with AutomaticKeepAliveClientMixin {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryLight.withOpacity(0.12),
+                        color: AppTheme.primaryLight.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -170,7 +170,7 @@ class _CartTabState extends State<CartTab> with AutomaticKeepAliveClientMixin {
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -200,7 +200,8 @@ class _CartTabState extends State<CartTab> with AutomaticKeepAliveClientMixin {
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryLight.withOpacity(0.15),
+                              color:
+                                  AppTheme.primaryLight.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
@@ -422,7 +423,7 @@ class _CartTabState extends State<CartTab> with AutomaticKeepAliveClientMixin {
                                               padding: const EdgeInsets.all(6),
                                               decoration: BoxDecoration(
                                                 color: AppTheme.errorColor
-                                                    .withOpacity(0.08),
+                                                    .withValues(alpha: 0.08),
                                                 borderRadius:
                                                     BorderRadius.circular(8),
                                               ),

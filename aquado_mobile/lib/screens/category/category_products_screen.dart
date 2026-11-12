@@ -20,6 +20,10 @@ class CategoryProductsScreen extends StatefulWidget {
 
 class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  int _currentPage = 1;
+  int _lastPage = 1;
+  bool _hasMore = false;
   List<Product> _products = [];
   String _sortBy = 'created_at';
   String _sortOrder = 'desc';
@@ -28,38 +32,58 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
   double? _maxPrice;
   final TextEditingController _minPriceController = TextEditingController();
   final TextEditingController _maxPriceController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _searchQuery = widget.initialSearch;
+    _scrollController.addListener(_onScroll);
     _loadProducts();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 250) {
+      if (!_isLoading && !_isLoadingMore && _hasMore) {
+        _loadMoreProducts();
+      }
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _minPriceController.dispose();
     _maxPriceController.dispose();
     super.dispose();
   }
 
   Future<void> _loadProducts() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _currentPage = 1;
+    });
 
     try {
-      final products = await ProductService.getProducts(
+      final paginated = await ProductService.getProductsPaginated(
         category: widget.category.slug.isNotEmpty ? widget.category.slug : null,
         search: _searchQuery,
         minPrice: _minPrice,
         maxPrice: _maxPrice,
         sortBy: _sortBy,
         sortOrder: _sortOrder,
-        perPage: 30,
+        page: 1,
+        perPage: 20,
       );
 
       if (mounted) {
         setState(() {
-          _products = products;
+          _products = paginated.products;
+          _currentPage = paginated.currentPage;
+          _lastPage = paginated.lastPage;
+          _hasMore = paginated.hasMore;
           _isLoading = false;
         });
       }
@@ -72,6 +96,40 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _loadMoreProducts() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final nextPage = _currentPage + 1;
+      final paginated = await ProductService.getProductsPaginated(
+        category: widget.category.slug.isNotEmpty ? widget.category.slug : null,
+        search: _searchQuery,
+        minPrice: _minPrice,
+        maxPrice: _maxPrice,
+        sortBy: _sortBy,
+        sortOrder: _sortOrder,
+        page: nextPage,
+        perPage: 20,
+      );
+
+      if (mounted) {
+        setState(() {
+          _products.addAll(paginated.products);
+          _currentPage = paginated.currentPage;
+          _lastPage = paginated.lastPage;
+          _hasMore = paginated.hasMore;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
       }
     }
   }
@@ -375,7 +433,8 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                           color: AppTheme.primarySoft,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: AppTheme.primaryColor.withOpacity(0.3)),
+                              color:
+                                  AppTheme.primaryColor.withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           children: [
@@ -516,19 +575,66 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                             ),
                           ),
                         )
-                      : GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.58,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                          ),
-                          itemCount: _products.length,
-                          itemBuilder: (context, index) {
-                            return ProductCard(product: _products[index]);
-                          },
+                      : CustomScrollView(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            SliverPadding(
+                              padding: const EdgeInsets.all(16),
+                              sliver: SliverGrid(
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 0.52,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    return ProductCard(
+                                      key: ValueKey(_products[index].id),
+                                      product: _products[index],
+                                    );
+                                  },
+                                  childCount: _products.length,
+                                ),
+                              ),
+                            ),
+                            if (_isLoadingMore)
+                              const SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 20),
+                                  child: Center(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                        ),
+                                        SizedBox(width: 10),
+                                        Text(
+                                          'Chargement des produits suivants...',
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.textSecondaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            const SliverToBoxAdapter(
+                              child: SizedBox(height: 16),
+                            ),
+                          ],
                         ),
             ),
           ),

@@ -34,6 +34,7 @@ class MarketplaceCacheService
         Cache::forget('home_featured_products');
         Cache::forget('api_featured_products');
         Cache::forget('home_all_products');
+        Cache::forget('google_shopping_feed_xml');
 
         if ($product instanceof Product) {
             if ($product->slug) {

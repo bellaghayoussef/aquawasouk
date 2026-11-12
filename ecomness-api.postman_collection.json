@@ -1,0 +1,230 @@
+{
+  "info": {
+    "name": "Ecomness Public API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Ecomness Public API v1. Create your key in the Ecomness dashboard (Integrations › Ecomness API › Manage API keys), then set the collection variable `apiKey` to it. Every request sends it in the x-api-key header. Full documentation: the Guide button on the same card."
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://ecomness.com/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "secret"
+    },
+    {
+      "key": "productCode",
+      "value": "ENP-XXXXXXXX",
+      "type": "string"
+    },
+    {
+      "key": "variantCode",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderCode",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "KITCHEN",
+                  "disabled": true
+                },
+                {
+                  "key": "inStock",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "approvalStatus",
+                  "value": "pending",
+                  "disabled": true,
+                  "description": "Suppliers only: approved or pending"
+                }
+              ]
+            },
+            "description": "Sellers: published products they may sell, at their wholesale price, with minimumUnitPrice. Suppliers: all their own products with approvalStatus, at their supplier price."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "const first = body.data && body.data.products && body.data.products[0];",
+                  "if (first) {",
+                  "  pm.collectionVariables.set('productCode', first.code);",
+                  "  pm.collectionVariables.set('variantCode', first.variants.length ? first.variants[0].code : '');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get a product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productCode}}"]
+            },
+            "description": "One product by its code (ENP-…), in the same shape as the list."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Place an order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            },
+            "description": "Sellers only. Every line is checked before anything is created; one bad line refuses the whole order with INVALID_ITEMS and a details entry per line. Send your own externalId so a retry cannot create the order twice. Remove variantCode for products without variants (it is ignored if sent).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"externalId\": \"shop-{{$timestamp}}\",\n  \"customer\": {\n    \"firstName\": \"Amine\",\n    \"lastName\": \"Ben Salah\",\n    \"phone\": \"22123456\",\n    \"email\": \"amine@example.com\",\n    \"state\": \"Tunis\",\n    \"city\": \"La Marsa\",\n    \"address\": \"12 rue de la Liberté\"\n  },\n  \"items\": [\n    {\n      \"productCode\": \"{{productCode}}\",\n      \"variantCode\": \"{{variantCode}}\",\n      \"quantity\": 1,\n      \"unitPrice\": 35\n    }\n  ],\n  \"comment\": \"Appeler avant livraison\",\n  \"openable\": true,\n  \"fragile\": false,\n  \"source\": \"INSTAGRAM\",\n  \"manageConfirmation\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('orderCode', pm.response.json().data.code);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Track orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders?codes={{orderCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"],
+              "query": [
+                {
+                  "key": "codes",
+                  "value": "{{orderCode}}",
+                  "description": "Comma-separated ENO-/ENSO- codes, at most 50"
+                }
+              ]
+            },
+            "description": "Up to 50 order (ENO-) or parcel (ENSO-) codes. Codes that are not yours come back in notFound."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reference",
+      "item": [
+        {
+          "name": "Reference data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reference",
+              "host": ["{{baseUrl}}"],
+              "path": ["reference"]
+            },
+            "description": "Governorates, order sources, product categories and colours accepted by the API."
+          }
+        },
+        {
+          "name": "Statuses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/statuses",
+              "host": ["{{baseUrl}}"],
+              "path": ["statuses"]
+            },
+            "description": "Every parcel status with its French label and description, and every delivery failure reason."
+          }
+        }
+      ]
+    }
+  ]
+}

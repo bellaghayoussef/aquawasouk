@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --color-brand-50: #f0f9ff;
+    --color-brand-100: #e0f2fe;
+    --color-brand-200: #bae6fd;
+    --color-brand-300: #7dd3fc;
+    --color-brand-400: #38bdf8;
+    --color-brand-500: #0ea5e9;
+    --color-brand-600: #0284c7;
+    --color-brand-700: #0369a1;
+    --color-brand-800: #075985;
+    --color-brand-900: #0c4a6e;
+    --color-brand-950: #082f49;
+}
+
+@layer utilities {
+    .outline-hidden {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+    }
+    .shadow-2xs {
+        box-shadow: 0 1px rgb(0 0 0 / 0.05);
+    }
+    .shadow-xs {
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+}
+
 @layer base {
     body {
         @apply bg-[#FAFBFD] text-slate-900 antialiased selection:bg-brand-500 selection:text-white dark:bg-slate-950 dark:text-slate-100;

@@ -20,57 +20,82 @@ class ApiService {
   static Future<void> init() async {
     try {
       // 1. Try secure encrypted storage first
-      _token = await _secureStorage.read(key: 'auth_token');
+      try {
+        _token = await _secureStorage.read(key: 'auth_token');
+      } catch (e) {
+        print('⚠️ SecureStorage read failed, will check SharedPreferences: $e');
+        _token = null;
+      }
 
-      // 2. Fallback to legacy SharedPreferences if not found
+      // 2. Fallback to SharedPreferences if not found
       if (_token == null) {
         final prefs = await SharedPreferences.getInstance();
         final legacyToken = prefs.getString('auth_token');
         if (legacyToken != null && legacyToken.isNotEmpty) {
           _token = legacyToken;
-          // Migrate to secure storage & remove from unencrypted storage
-          await _secureStorage.write(key: 'auth_token', value: legacyToken);
-          await prefs.remove('auth_token');
+          // Attempt migration to secure storage
+          try {
+            await _secureStorage.write(key: 'auth_token', value: legacyToken);
+            await prefs.remove('auth_token');
+          } catch (_) {
+            // Keep in SharedPreferences if secure storage write fails
+          }
         }
       }
 
-      print(
-          '🔐 Token initialized (SecureStorage): ${_token != null ? "Yes" : "No"}');
+      print('🔐 Token initialized: ${_token != null ? "Yes" : "No"}');
     } catch (e) {
-      print('❌ Error initializing token from SecureStorage: $e');
+      print('❌ Error initializing token: $e');
     }
   }
 
-  // Save token encrypted
+  // Save token encrypted (with automatic fallback to SharedPreferences)
   static Future<void> saveToken(String token) async {
+    _token = token;
+    bool savedInSecure = false;
+
     try {
-      _token = token;
       await _secureStorage.write(key: 'auth_token', value: token);
-
-      // Clean up legacy storage if it existed
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('auth_token');
-
+      savedInSecure = true;
       print('✅ Token securely saved in FlutterSecureStorage');
     } catch (e) {
-      print('❌ Error saving secure token: $e');
-      throw Exception('Failed to save authentication token');
+      print('⚠️ FlutterSecureStorage write failed: $e. Falling back to SharedPreferences.');
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (savedInSecure) {
+        // Clean up legacy storage if it existed
+        await prefs.remove('auth_token');
+      } else {
+        // Fallback to SharedPreferences so login never breaks
+        await prefs.setString('auth_token', token);
+        print('✅ Token saved in SharedPreferences as fallback');
+      }
+    } catch (e) {
+      print('❌ Error saving token to SharedPreferences: $e');
+      if (!savedInSecure) {
+        throw Exception('Failed to save authentication token');
+      }
     }
   }
 
   // Clear token
   static Future<void> clearToken() async {
+    _token = null;
     try {
-      _token = null;
       await _secureStorage.delete(key: 'auth_token');
+    } catch (e) {
+      print('⚠️ Error clearing secure storage: $e');
+    }
 
+    try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('auth_token');
-
-      print('🗑️ Token cleared from SecureStorage');
     } catch (e) {
-      print('❌ Error clearing token: $e');
+      print('⚠️ Error clearing SharedPreferences: $e');
     }
+    print('🗑️ Token cleared');
   }
 
   // Get headers

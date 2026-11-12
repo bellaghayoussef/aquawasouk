@@ -12,6 +12,8 @@ use App\Models\Vendor;
 use App\Models\VendorProfitMargin;
 use App\Models\VendorPayout;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class AdminController extends Controller
@@ -176,22 +178,29 @@ class AdminController extends Controller
 
     public function orders(Request $request)
     {
-        $query = Order::with(['user', 'items']);
+        $query = Order::with([
+            'user:id,name,email',
+            'items.product.primaryImage',
+            'items.product.vendor:id,user_id,shop_name',
+            'items.vendor:id,user_id,shop_name',
+        ]);
 
-        // Search filter (customer name or order number)
+        // Search filter (customer name, email, phone, city or order number)
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = trim($request->search);
             $query->where(function($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
-                  ->orWhereHas('user', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('shipping_city', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($uq) use ($search) {
+                      $uq->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
                   });
             });
         }
 
         // Status filter
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
@@ -203,7 +212,13 @@ class AdminController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $orders = $query->latest()->paginate(20)->withQueryString();
+        $view = $request->get('view', 'table');
+        $perPage = $view === 'kanban' ? 100 : 20;
+        if ($request->filled('per_page')) {
+            $perPage = max(5, min(200, (int) $request->per_page));
+        }
+
+        $orders = $query->latest()->paginate($perPage)->withQueryString();
 
         $orders->getCollection()->transform(function ($order) {
             $order->admin_profit = round($order->items->sum('commission'), 2);
@@ -212,7 +227,7 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/Orders', [
             'orders' => $orders,
-            'filters' => $request->only(['search', 'status', 'date_from', 'date_to']),
+            'filters' => $request->only(['search', 'status', 'date_from', 'date_to', 'view', 'per_page']),
         ]);
     }
 
@@ -233,9 +248,18 @@ class AdminController extends Controller
         ]);
 
         $originalStatus = $order->status;
-        $order->update(['status' => $request->status]);
+        $newStatus = $request->status;
 
-        if ($originalStatus !== $request->status) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $newStatus) {
+            $order->status = $newStatus;
+            if ($newStatus === 'delivered' && $order->payment_method === 'cod') {
+                $order->payment_status = 'paid';
+            }
+            $order->save();
+            $order->items()->update(['status' => $newStatus]);
+        });
+
+        if ($originalStatus !== $newStatus) {
             try {
                 if ($order->user) {
                     \Illuminate\Support\Facades\Mail::to($order->user->email)->send(new \App\Mail\OrderStatusUpdated($order));
@@ -245,7 +269,27 @@ class AdminController extends Controller
             }
         }
 
-        return back()->with('success', 'Order status updated successfully');
+        $statusLabels = [
+            'pending' => 'En attente',
+            'processing' => 'En préparation',
+            'shipped' => 'Expédiée',
+            'delivered' => 'Livrée',
+            'cancelled' => 'Annulée',
+        ];
+        $msg = "Statut de la commande #{$order->order_number} mis à jour : " . ($statusLabels[$newStatus] ?? $newStatus);
+
+        if ($request->wantsJson()) {
+            $order->load(['user:id,name,email', 'items.product.primaryImage', 'items.vendor']);
+            $order->admin_profit = round($order->items->sum('commission'), 2);
+
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'order' => $order,
+            ]);
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function deleteVendor(Vendor $vendor)
@@ -305,9 +349,14 @@ class AdminController extends Controller
             'parent_id' => 'nullable|exists:categories,id',
             'name' => 'required|string|max:255|unique:categories',
             'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif,svg|max:5120',
         ]);
 
-        $validated['slug'] = \Str::slug($validated['name']);
+        $validated['slug'] = Str::slug($validated['name']);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('categories', 'public');
+        }
 
         Category::create($validated);
 
@@ -332,9 +381,22 @@ class AdminController extends Controller
             'parent_id' => 'nullable|exists:categories,id',
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
             'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif,svg|max:5120',
         ]);
 
-        $validated['slug'] = \Str::slug($validated['name']);
+        $validated['slug'] = Str::slug($validated['name']);
+
+        if ($request->hasFile('image')) {
+            if ($category->image) {
+                Storage::disk('public')->delete($category->image);
+            }
+            $validated['image'] = $request->file('image')->store('categories', 'public');
+        } elseif ($request->boolean('remove_image')) {
+            if ($category->image) {
+                Storage::disk('public')->delete($category->image);
+            }
+            $validated['image'] = null;
+        }
 
         $category->update($validated);
 
@@ -346,6 +408,10 @@ class AdminController extends Controller
         // Check if category has products
         if ($category->products()->count() > 0) {
             return back()->with('error', 'Cannot delete category with existing products');
+        }
+
+        if ($category->image) {
+            Storage::disk('public')->delete($category->image);
         }
 
         $category->delete();

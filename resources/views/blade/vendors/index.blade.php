@@ -7,6 +7,7 @@
 
     @php
         $isAr = app()->getLocale() === 'ar';
+        $hasActiveFilter = request()->filled('search') || request()->filled('city') || (request()->filled('sort') && request('sort') !== 'latest');
     @endphp
 
     <!-- Header & Breadcrumb -->
@@ -22,9 +23,14 @@
                     <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ __('messages.our_trusted_vendors') }}</h1>
                     <p class="text-xs text-slate-500 mt-1">{{ __('messages.discover_quality_products') }}</p>
                 </div>
-                <a href="{{ route('become-vendor') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-xs font-bold rounded-2xl shadow-sm hover:shadow-md transition">
-                    <span>🚀 {{ __('messages.become_a_vendor') }}</span>
-                </a>
+                <div class="flex items-center gap-2.5">
+                    <span class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
+                        🏪 {{ $vendors->total() }} {{ __('messages.all_shops') }}
+                    </span>
+                    <a href="{{ route('become-vendor') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-xs font-bold rounded-2xl shadow-sm hover:shadow-md transition">
+                        <span>🚀 {{ __('messages.become_a_vendor') }}</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -32,22 +38,75 @@
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        <!-- Search filter -->
-        <div class="bg-white rounded-3xl border border-slate-200 p-4 shadow-xs">
-            <form action="{{ route('vendors.index') }}" method="GET" class="flex flex-col sm:flex-row items-center gap-3">
-                <div class="relative flex-1 w-full">
+        <!-- Promotional Banner if exists -->
+        @if(isset($banners) && $banners->count() > 0)
+            @php $vb = $banners->first(); @endphp
+            <a href="{{ $vb->link_url ?: '#' }}" class="block group relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs border border-slate-200/80 hover:shadow-md transition">
+                <div class="w-full aspect-[21/9] sm:aspect-[24/7] max-h-48 bg-slate-100 overflow-hidden relative">
+                    <img src="{{ $vb->image_url }}" alt="{{ $vb->title ?? 'Bannière' }}" class="w-full h-full object-cover object-center group-hover:scale-102 transition duration-500" loading="lazy">
+                    @if($vb->title)
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent flex items-end p-4 sm:p-6">
+                            <span class="text-white text-base sm:text-lg font-black drop-shadow-sm">{{ $vb->title }}</span>
+                        </div>
+                    @endif
+                </div>
+            </a>
+        @endif
+
+        <!-- Filter & Search Controls -->
+        <div class="bg-white rounded-3xl border border-slate-200/90 p-4 sm:p-5 shadow-xs">
+            <form action="{{ route('vendors.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                <!-- Search text -->
+                <div class="sm:col-span-5 relative">
                     <input 
                         type="text" 
                         name="search" 
                         value="{{ request('search') }}"
-                        placeholder="{{ __('messages.search_shop_placeholder') ?? 'Rechercher une boutique par nom...' }}" 
-                        class="w-full pl-10 pr-4 rtl:pr-10 rtl:pl-4 py-2.5 rounded-2xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-200 outline-hidden bg-slate-50/50"
+                        placeholder="{{ __('messages.search_shop_placeholder') }}" 
+                        class="w-full pl-10 pr-4 rtl:pr-10 rtl:pl-4 py-2.5 rounded-2xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-200 focus:border-sky-500 outline-hidden bg-slate-50/60"
                     >
-                    <svg class="w-4 h-4 text-slate-400 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
                 </div>
-                <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl text-xs font-bold transition shadow-xs">
-                    {{ __('messages.filter') }}
-                </button>
+
+                <!-- City Filter -->
+                <div class="sm:col-span-3">
+                    <select name="city" onchange="this.form.submit()" class="w-full py-2.5 px-3 rounded-2xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-200 focus:border-sky-500 outline-hidden bg-slate-50/60 text-slate-700">
+                        <option value="">📍 {{ __('messages.all_cities') }}</option>
+                        @if(isset($cities))
+                            @foreach($cities as $city)
+                                <option value="{{ $city }}" {{ request('city') === $city ? 'selected' : '' }}>
+                                    {{ $city }}
+                                </option>
+                            @endforeach
+                        @endif
+                    </select>
+                </div>
+
+                <!-- Sort Filter -->
+                <div class="sm:col-span-3">
+                    <select name="sort" onchange="this.form.submit()" class="w-full py-2.5 px-3 rounded-2xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-200 focus:border-sky-500 outline-hidden bg-slate-50/60 text-slate-700">
+                        <option value="latest" {{ request('sort') == 'latest' || !request('sort') ? 'selected' : '' }}>✨ {{ __('messages.sort_latest') }}</option>
+                        <option value="products_desc" {{ request('sort') == 'products_desc' ? 'selected' : '' }}>🔥 {{ __('messages.sort_products_desc') }}</option>
+                        <option value="name_asc" {{ request('sort') == 'name_asc' ? 'selected' : '' }}>🔤 {{ __('messages.sort_name_asc') }}</option>
+                        <option value="name_desc" {{ request('sort') == 'name_desc' ? 'selected' : '' }}>🔤 {{ __('messages.sort_name_desc') }}</option>
+                    </select>
+                </div>
+
+                <!-- Submit / Clear -->
+                <div class="sm:col-span-1 flex items-center gap-2">
+                    <button type="submit" class="w-full py-2.5 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl text-xs font-bold transition shadow-xs flex items-center justify-center cursor-pointer" title="{{ __('messages.filter') }}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                    </button>
+                    @if($hasActiveFilter)
+                        <a href="{{ route('vendors.index') }}" class="p-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition shrink-0" title="{{ __('messages.clear_filters') }}">
+                            ✕
+                        </a>
+                    @endif
+                </div>
             </form>
         </div>
 
@@ -111,7 +170,7 @@
 
                             <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                                 <span class="text-xs font-semibold text-slate-500">
-                                    📦 {{ $vendor->products_count ?? $vendor->products()->count() }} {{ __('messages.store_products_count') }}
+                                    📦 {{ $vendor->products_count }} {{ __('messages.store_products_count') }}
                                 </span>
                                 <a href="{{ route('vendors.show', $vendor->slug) }}" class="px-3.5 py-1.5 bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-2xs">
                                     <span>{{ __('messages.visit_shop') }}</span>

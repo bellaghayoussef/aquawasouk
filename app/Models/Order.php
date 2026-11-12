@@ -11,6 +11,12 @@ class Order extends Model
 
     protected $fillable = [
         'order_number',
+        'ecomness_order_code',
+        'ecomness_status',
+        'ecomness_tracking_number',
+        'ecomness_payload',
+        'ecomness_error',
+        'ecomness_synced_at',
         'user_id',
         'total_amount',
         'shipping_cost',
@@ -31,6 +37,8 @@ class Order extends Model
         'total_amount' => 'decimal:2',
         'shipping_cost' => 'decimal:2',
         'discount_amount' => 'decimal:2',
+        'ecomness_payload' => 'array',
+        'ecomness_synced_at' => 'datetime',
     ];
 
     public function user()

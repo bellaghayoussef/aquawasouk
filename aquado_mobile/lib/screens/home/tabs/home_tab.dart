@@ -23,19 +23,37 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   bool _isLoading = true;
+  bool _isLoadingMoreLatest = false;
+  int _latestCurrentPage = 1;
+  int _latestLastPage = 1;
+  bool _hasMoreLatest = false;
+  int _totalLatestProducts = 0;
   List<Product> _featuredProducts = [];
   List<Product> _latestProducts = [];
   List<Category> _categories = [];
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadData();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 300) {
+      if (!_isLoading && !_isLoadingMoreLatest && _hasMoreLatest) {
+        _loadMoreLatestProducts();
+      }
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -45,9 +63,10 @@ class _HomeTabState extends State<HomeTab> {
 
     try {
       final featured = await ProductService.getFeaturedProducts();
-      final latest = await ProductService.getProducts(
+      final latestPaginated = await ProductService.getProductsPaginated(
         sortBy: 'created_at',
         sortOrder: 'desc',
+        page: 1,
         perPage: 16,
       );
       final categories = await CategoryService.getCategories(parentOnly: true);
@@ -55,7 +74,11 @@ class _HomeTabState extends State<HomeTab> {
       if (mounted) {
         setState(() {
           _featuredProducts = featured.take(6).toList();
-          _latestProducts = latest;
+          _latestProducts = latestPaginated.products;
+          _latestCurrentPage = latestPaginated.currentPage;
+          _latestLastPage = latestPaginated.lastPage;
+          _hasMoreLatest = latestPaginated.hasMore;
+          _totalLatestProducts = latestPaginated.total;
           _categories = categories.take(10).toList();
           _isLoading = false;
         });
@@ -69,6 +92,37 @@ class _HomeTabState extends State<HomeTab> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _loadMoreLatestProducts() async {
+    if (_isLoadingMoreLatest || !_hasMoreLatest) return;
+
+    setState(() => _isLoadingMoreLatest = true);
+
+    try {
+      final nextPage = _latestCurrentPage + 1;
+      final paginated = await ProductService.getProductsPaginated(
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+        page: nextPage,
+        perPage: 16,
+      );
+
+      if (mounted) {
+        setState(() {
+          _latestProducts.addAll(paginated.products);
+          _latestCurrentPage = paginated.currentPage;
+          _latestLastPage = paginated.lastPage;
+          _hasMoreLatest = paginated.hasMore;
+          _totalLatestProducts = paginated.total;
+          _isLoadingMoreLatest = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingMoreLatest = false);
       }
     }
   }
@@ -106,6 +160,7 @@ class _HomeTabState extends State<HomeTab> {
           color: AppTheme.primaryColor,
           onRefresh: _loadData,
           child: CustomScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               // Top Brand Header (Matching Website)
@@ -428,7 +483,7 @@ class _HomeTabState extends State<HomeTab> {
                     color: AppTheme.secondaryColor,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 14,
                         offset: const Offset(0, 4),
                       ),
@@ -457,8 +512,8 @@ class _HomeTabState extends State<HomeTab> {
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
                               colors: [
-                                Colors.black.withOpacity(0.85),
-                                Colors.black.withOpacity(0.4),
+                                Colors.black.withValues(alpha: 0.85),
+                                Colors.black.withValues(alpha: 0.4),
                                 Colors.transparent,
                               ],
                             ),
@@ -610,7 +665,7 @@ class _HomeTabState extends State<HomeTab> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: 0.02),
                               blurRadius: 6,
                             ),
                           ],
@@ -677,7 +732,9 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                   ),
                   Text(
-                    '${_latestProducts.length} articles disponibles',
+                    _totalLatestProducts > 0
+                        ? '$_totalLatestProducts articles au total'
+                        : '${_latestProducts.length} articles disponibles',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
@@ -728,16 +785,49 @@ class _HomeTabState extends State<HomeTab> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.48,
+              childAspectRatio: 0.52,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
             itemCount: _latestProducts.length,
             itemBuilder: (context, index) {
-              return ProductCard(product: _latestProducts[index]);
+              return ProductCard(
+                key: ValueKey(_latestProducts[index].id),
+                product: _latestProducts[index],
+              );
             },
           ),
         ),
+
+        // Bottom Loading Indicator for infinite scroll
+        if (_isLoadingMoreLatest)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Chargement des produits suivants...',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }

@@ -86,6 +86,14 @@ class WishlistProvider with ChangeNotifier {
           'is_active': product.isActive ? 1 : 0,
           'category_id': product.categoryId,
           'vendor_id': product.vendorId,
+          if (product.vendor != null)
+            'vendor': {
+              'id': product.vendor!.id,
+              'user_id': product.vendor!.userId,
+              'shop_name': product.vendor!.shopName,
+              'slug': product.vendor!.slug,
+              'shipping_price': product.vendor!.shippingPrice,
+            },
           // We skip complex nested objects for local storage simplicity to avoid circular deps or huge data
           // Minimal data needed for display
         };

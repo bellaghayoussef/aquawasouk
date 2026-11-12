@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/product.dart';
 import '../../services/vendor_service.dart';
 import '../../config/theme.dart';
+import '../../config/api_config.dart';
 import 'add_product_screen.dart';
 import 'edit_product_screen.dart';
 
@@ -233,25 +234,30 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
               // Product Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: product.image != null
-                    ? CachedNetworkImage(
-                        imageUrl: product.image!,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(
-                          width: 80,
-                          height: 80,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image),
-                        ),
-                      )
-                    : Container(
-                        width: 80,
-                        height: 80,
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.image),
-                      ),
+                child: Builder(
+                  builder: (context) {
+                    final imageUrl = ApiConfig.getImageUrl(product.image);
+                    return imageUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => Container(
+                              width: 80,
+                              height: 80,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.image),
+                            ),
+                          )
+                        : Container(
+                            width: 80,
+                            height: 80,
+                            color: Colors.grey[200],
+                            child: const Icon(Icons.image),
+                          );
+                  },
+                ),
               ),
               const SizedBox(width: 12),
 
@@ -284,8 +290,8 @@ class _VendorProductsScreenState extends State<VendorProductsScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: product.isActive
-                                ? AppTheme.successColor.withOpacity(0.1)
-                                : AppTheme.errorColor.withOpacity(0.1),
+                                ? AppTheme.successColor.withValues(alpha: 0.1)
+                                : AppTheme.errorColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(

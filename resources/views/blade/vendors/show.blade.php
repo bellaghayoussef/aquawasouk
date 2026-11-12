@@ -2,6 +2,14 @@
 
 @section('title', $vendor->shop_name . ' - ' . __('messages.official_shops') . ' | AquawaSouk')
 @section('meta_description', Str::limit(strip_tags($vendor->description ?? __('messages.discover_quality_products') . ' - ' . $vendor->shop_name), 160))
+@php
+    $vendorImage = $vendor->logo ?: $vendor->banner;
+    $vendorOgUrl = $vendorImage
+        ? (Str::startsWith($vendorImage, ['http://', 'https://']) ? $vendorImage : (Str::startsWith($vendorImage, 'uploads/') ? asset($vendorImage) : asset('uploads/' . $vendorImage)))
+        : asset('images/og-image.jpg');
+@endphp
+@section('og_image', $vendorOgUrl)
+@section('og_type', 'profile')
 
 @section('content')
 
@@ -31,9 +39,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-14 relative z-10">
             <!-- Breadcrumbs -->
             <nav class="flex items-center gap-2 text-xs text-slate-300/80 mb-8" aria-label="Breadcrumb">
-                <a href="{{ route('blade.home') }}" class="hover:text-sky-300 transition">{{ __('messages.home') }}</a>
+                <a href="{{ route('home') }}" class="hover:text-sky-300 transition">{{ __('messages.home') }}</a>
                 <span class="text-slate-500">{!! $isAr ? '&larr;' : '&rarr;' !!}</span>
-                <a href="{{ route('blade.vendors.index') }}" class="hover:text-sky-300 transition">{{ __('messages.vendors') }}</a>
+                <a href="{{ route('vendors.index') }}" class="hover:text-sky-300 transition">{{ __('messages.vendors') }}</a>
                 <span class="text-slate-500">{!! $isAr ? '&larr;' : '&rarr;' !!}</span>
                 <span class="text-white font-semibold truncate">{{ $vendor->shop_name }}</span>
             </nav>
@@ -176,7 +184,7 @@
 
         <!-- STORE FILTER & SEARCH CONTROL BAR -->
         <div class="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            <form action="{{ route('blade.vendors.show', $vendor->slug) }}" method="GET" class="space-y-4">
+            <form action="{{ route('vendors.show', $vendor->slug) }}" method="GET" class="space-y-4">
                 <div class="flex flex-col md:flex-row items-center gap-3">
                     <!-- Search Input -->
                     <div class="relative flex-1 w-full">
@@ -220,7 +228,7 @@
                             {{ __('messages.search') }}
                         </button>
                         @if(request()->hasAny(['search', 'category', 'sort']))
-                            <a href="{{ route('blade.vendors.show', $vendor->slug) }}" class="p-2.5 text-slate-500 hover:text-rose-600 rounded-2xl border border-slate-200 hover:bg-rose-50 transition shrink-0" title="{{ __('messages.reset_store_filters') }}">
+                            <a href="{{ route('vendors.show', $vendor->slug) }}" class="p-2.5 text-slate-500 hover:text-rose-600 rounded-2xl border border-slate-200 hover:bg-rose-50 transition shrink-0" title="{{ __('messages.reset_store_filters') }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </a>
                         @endif
@@ -230,12 +238,15 @@
                 <!-- Category Pills (Quick Click) -->
                 @if(isset($vendorCategories) && $vendorCategories->count() > 0)
                     <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1">
-                        <a href="{{ route('blade.vendors.show', array_merge(['slug' => $vendor->slug], request()->except('category', 'page'))) }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition {{ !request('category') ? 'bg-sky-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
+                        <a href="{{ route('vendors.show', array_merge(['slug' => $vendor->slug], request()->except('category', 'page'))) }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition {{ !request('category') ? 'bg-sky-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
                             {{ __('messages.all_store_categories') }}
                         </a>
                         @foreach($vendorCategories as $vCat)
-                            <a href="{{ route('blade.vendors.show', array_merge(['slug' => $vendor->slug, 'category' => $vCat->slug], request()->except('category', 'page'))) }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition {{ request('category') === $vCat->slug ? 'bg-sky-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
-                                {{ $vCat->name }}
+                            <a href="{{ route('vendors.show', array_merge(['slug' => $vendor->slug, 'category' => $vCat->slug], request()->except('category', 'page'))) }}" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition inline-flex items-center gap-1.5 {{ request('category') === $vCat->slug ? 'bg-sky-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
+                                @if($vCat->image_url)
+                                    <img src="{{ $vCat->image_url }}" alt="{{ $vCat->name }}" class="w-4 h-4 rounded-md object-contain shrink-0">
+                                @endif
+                                <span>{{ $vCat->name }}</span>
                             </a>
                         @endforeach
                     </div>
@@ -279,7 +290,7 @@
                     <h3 class="text-base font-bold text-slate-800">{{ __('messages.no_store_products') }}</h3>
                     <p class="text-xs text-slate-500 mt-1">{{ __('messages.try_adjusting_filters') }}</p>
                     <div class="mt-5">
-                        <a href="{{ route('blade.vendors.show', $vendor->slug) }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
+                        <a href="{{ route('vendors.show', $vendor->slug) }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
                             <span>{{ __('messages.reset_store_filters') }}</span>
                         </a>
                     </div>
@@ -300,10 +311,10 @@
                     {{ __('messages.reassurance_store_desc') }}
                 </p>
                 <div class="pt-2 flex flex-wrap gap-3">
-                    <a href="{{ route('blade.products.index') }}" class="px-5 py-2.5 bg-white text-slate-950 font-extrabold text-xs rounded-xl hover:bg-slate-100 transition shadow-md">
+                    <a href="{{ route('products.index') }}" class="px-5 py-2.5 bg-white text-slate-950 font-extrabold text-xs rounded-xl hover:bg-slate-100 transition shadow-md">
                         {{ __('messages.browse_products') }} {!! $isAr ? '&larr;' : '&rarr;' !!}
                     </a>
-                    <a href="{{ route('blade.vendors.index') }}" class="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/20 transition">
+                    <a href="{{ route('vendors.index') }}" class="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/20 transition">
                         {{ __('messages.our_trusted_vendors') }}
                     </a>
                 </div>

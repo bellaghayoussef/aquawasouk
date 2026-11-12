@@ -134,12 +134,29 @@ class CartProvider with ChangeNotifier {
           localItems[existingIndex] = updated;
         } else {
           // Add new
+          // Determine variation price if applicable
+          double itemPrice = product.finalPrice;
+          if (product.variations != null && product.variations!.isNotEmpty) {
+            try {
+              final match = product.variations!.firstWhere(
+                (v) =>
+                    (color == null ||
+                        v.color?.toLowerCase() == color.toLowerCase()) &&
+                    (size == null ||
+                        v.size?.toLowerCase() == size.toLowerCase()),
+              );
+              if (match.price > 0) {
+                itemPrice = match.price;
+              }
+            } catch (_) {}
+          }
+
           final newItem = CartItem(
               id: DateTime.now().millisecondsSinceEpoch, // Temp ID
               cartId: 0,
               productId: productId,
               quantity: quantity,
-              price: product.finalPrice, // Use discounted price if available
+              price: itemPrice,
               color: color,
               size: size,
               product: product);

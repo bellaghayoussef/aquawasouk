@@ -10,7 +10,7 @@ return [
     'login' => 'تسجيل الدخول',
     'register' => 'إنشاء حساب',
     'logout' => 'تسجيل الخروج',
-    
+
     // Product
     'all_products' => 'جميع المنتجات',
     'product_details' => 'تفاصيل المنتج',
@@ -43,7 +43,7 @@ return [
     'quantity' => 'الكمية',
     'featured' => 'مميز',
     'featured_product' => 'منتج مميز',
-    
+
     // Cart
     'shopping_cart' => 'عربة التسوق',
     'your_cart' => 'عربتك',
@@ -56,7 +56,7 @@ return [
     'continue_shopping' => 'متابعة التسوق',
     'remove' => 'إزالة',
     'update' => 'تحديث',
-    
+
     // Auth
     'welcome_back' => 'مرحباً بعودتك',
     'create_account' => 'إنشاء حساب',
@@ -69,7 +69,7 @@ return [
     'already_registered' => 'مسجل بالفعل؟',
     'register_now' => 'سجل الآن',
     'name' => 'الاسم',
-    
+
     // Vendor
     'shop_name' => 'اسم المتجر',
     'vendor_profile' => 'ملف البائع',
@@ -103,7 +103,7 @@ return [
     'primary' => 'رئيسية',
     'new' => 'جديد',
     'if_set_sale_price' => 'إذا تم تعيينه، سيتم عرضه كسعر البيع',
-    
+
     // Footer
     'about' => 'من نحن',
     'customer_service' => 'خدمة العملاء',
@@ -117,7 +117,7 @@ return [
     'terms_of_service_description' => 'اقرأ شروط الخدمة لفهم القواعد والمسؤوليات المتعلقة باستخدام منصتنا.',
     'all_rights_reserved' => 'جميع الحقوق محفوظة',
     'trusted_marketplace' => 'سوقك الموثوق لمستلزمات الأحواض والمواد والأسماك.',
-    
+
     // Common
     'view_all' => 'عرض الكل',
     'view_details' => 'عرض التفاصيل',
@@ -135,7 +135,7 @@ return [
     'by' => 'بواسطة',
     'from' => 'من',
     'to' => 'إلى',
-    
+
     // Messages
     'success' => 'نجاح',
     'error' => 'خطأ',
@@ -147,7 +147,7 @@ return [
     'product_created' => 'تم إنشاء المنتج بنجاح',
     'product_updated' => 'تم تحديث المنتج بنجاح',
     'product_deleted' => 'تم حذف المنتج بنجاح',
-    
+
     // Contact
     'contact_intro' => 'لديك أسئلة؟ نود أن نسمع منك.',
     'get_in_touch' => 'تواصل معنا',
@@ -156,7 +156,7 @@ return [
     'message' => 'الرسالة',
     'send_message' => 'إرسال الرسالة',
     'phone' => 'الهاتف',
-    
+
     // Become Vendor
     'become_a_vendor' => 'كن بائعاً',
     'start_selling_intro' => 'ابدأ عملك مع أكواسوق وتواصل مع آلاف العملاء.',
@@ -174,7 +174,7 @@ return [
     'country' => 'البلد',
     'agree_terms' => 'أوافق على الشروط والأحكام',
     'submit_application' => 'إرسال الطلب',
-    
+
     // Vendors Page
     'our_trusted_vendors' => 'بائعونا الموثوقون',
     'discover_quality_products' => 'اكتشف منتجات عالية الجودة من بائعين موثوقين',
@@ -183,7 +183,7 @@ return [
     'products_from' => 'منتجات من',
     'no_products_yet' => 'لا توجد منتجات بعد',
     'vendor_no_products' => 'لم يقم هذا البائع بإدراج أي منتجات بعد',
-    
+
     // Checkout
     'payment_method' => 'طريقة الدفع',
     'credit_card' => 'بطاقة ائتمان',
@@ -196,7 +196,7 @@ return [
     'place_order' => 'إتمام الطلب',
     'processing' => 'جاري المعالجة...',
     'postal_code' => 'الرمز البريدي',
-    
+
     // Blog
     'blog' => 'المدونة',
     'blog_management' => 'إدارة المدونة',
@@ -230,7 +230,7 @@ return [
     'delivery_address' => 'عنوان التوصيل',
     'city_governorate' => 'المدينة / الولاية',
     'shipping_notes' => 'ملاحظات إضافية (اختياري)',
-    'confirm_direct_order' => 'تأكيد الطلب (الدفع عند الاستلام)',
+    'confirm_direct_order' => 'تأكيد الطلب ',
     'unit_price' => 'سعر الوحدة',
     'shipping_fee' => 'مصاريف الشحن',
     'free_shipping' => 'مجاني',
@@ -264,4 +264,70 @@ return [
     'all_shops' => 'جميع المتاجر',
     'open_shop_free' => 'فتح متجري مجاناً',
     'search_shop_placeholder' => 'ابحث عن متجر بالاسم...',
+    'featured_products_title' => 'المنتجات المميزة',
+    'most_wanted_this_week' => 'الأكثر طلباً هذا الأسبوع',
+    'vendor_banner_title' => 'تبيع منتجات في تونس؟ طوّر رقم أعمالك على AquawaSouk!',
+    'vendor_banner_desc' => 'أنشئ متجرك مجاناً في دقيقتين. استفد من آلاف الزوار يومياً، ولوحة تحكم عصرية وإدارة مبسّطة للطلبات.',
+    'popular_departments' => 'الأقسام الشائعة',
+    'browse_by_theme' => 'تصفح فئاتنا حسب الموضوع',
+    '404_title' => 'الصفحة غير موجودة',
+    '404_meta_desc' => 'الصفحة التي تبحث عنها غير موجودة أو تم نقلها.',
+    '404_heading' => 'عفواً! هذه الصفحة ضاعت.',
+    '404_subtext' => 'الصفحة التي تبحث عنها غير موجودة، أو تم نقلها، أو الرابط معطوب. لا تقلق — عُد إلى الرئيسية وتابع تسوّقك!',
+    'go_home' => 'العودة إلى الرئيسية',
+
+    // صفحات الخطأ
+    '403_title' => 'وصول مرفوض',
+    '403_meta_desc' => 'ليس لديك صلاحية للوصول إلى هذه الصفحة.',
+    '403_heading' => 'الوصول مرفوض.',
+    '403_subtext' => 'ليس لديك الصلاحية لعرض هذه الصفحة. إن كنت تعتقد أن هذا خطأ، يرجى التواصل معنا.',
+
+    '419_title' => 'انتهت صلاحية الصفحة',
+    '419_meta_desc' => 'انتهت جلستك. يرجى تحديث الصفحة والمحاولة مجدداً.',
+    '419_heading' => 'انتهت الجلسة.',
+    '419_subtext' => 'انتهت صلاحية جلستك بسبب عدم النشاط لفترة طويلة. يرجى تحديث الصفحة والمحاولة مجدداً.',
+    '419_retry' => 'تحديث الصفحة',
+
+    '429_title' => 'طلبات كثيرة جداً',
+    '429_meta_desc' => 'لقد أرسلت طلبات كثيرة جداً. يرجى الانتظار قبل المحاولة مجدداً.',
+    '429_heading' => 'تمهّل قليلاً!',
+    '429_subtext' => 'لقد أرسلت طلبات كثيرة جداً في وقت قصير. يرجى الانتظار لحظة قبل المحاولة مجدداً.',
+    '429_retry' => 'حاول مجدداً',
+
+    '500_title' => 'خطأ في الخادم',
+    '500_meta_desc' => 'حدث خطأ غير متوقع. فريقنا يعمل على حلّه.',
+    '500_heading' => 'حدث خطأ ما.',
+    '500_subtext' => 'حدث خطأ غير متوقع على خادمنا. تم إشعار فريقنا وهو يعمل على حلّه. يرجى المحاولة مجدداً بعد قليل.',
+    '500_retry' => 'حاول مجدداً',
+
+    '503_title' => 'قيد الصيانة',
+    '503_meta_desc' => 'AquawaSouk في وضع الصيانة حالياً. سنعود قريباً.',
+    '503_heading' => 'سنعود قريباً!',
+    '503_subtext' => 'يخضع AquawaSouk حالياً لصيانة مجدولة لتحسين تجربتك. يرجى العودة بعد بضع دقائق.',
+    '503_retry' => 'إعادة تحميل',
+
+    // Vendor Directory & Filters
+    'sort_by' => 'ترتيب حسب',
+    'sort_products_desc' => 'الأكثر منتجات',
+    'sort_name_asc' => 'الاسم (أ - ي)',
+    'sort_name_desc' => 'الاسم (ي - أ)',
+    'sort_latest' => 'أحدث الشركاء',
+    'all_cities' => 'كافة المدن والولايات',
+    'filter_by_city' => 'الولاية / المدينة',
+    'clear_filters' => 'إلغاء التصفيات',
+    'visit_shop' => 'زيارة المتجر',
+    'verified_partner' => 'متجر موثوق',
+
+    // Live Search
+    'live_search_placeholder' => 'ابحث عن منتج، علامة تجارية، فئة...',
+    'live_search_no_results' => 'لم يتم العثور على أي منتج',
+    'live_search_view_all' => 'عرض كل النتائج لـ',
+    'quick_results' => 'نتائج سريعة',
+
+    // Cart Toast & WhatsApp
+    'cart_added_toast_title' => 'تمت إضافة المنتج إلى السلة بنجاح!',
+    'cart_continue_shopping' => 'متابعة التسوق',
+    'cart_view_cart' => 'عرض السلة',
+    'whatsapp_chat_support' => 'هل تحتاج لمساعدة؟ تواصل معنا عبر واتساب',
+    'whatsapp_chat_prefill' => 'مرحباً AquawaSouk، لدي استفسار بخصوص المنتجات.',
 ];

@@ -65,15 +65,30 @@ const deleteCategory = (categoryId) => {
                                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                     <tr v-for="category in categories.data" :key="category.id">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                                <span v-if="category.parent" class="text-gray-400 mr-2">↳</span>
-                                                {{ category.name }}
-                                            </div>
-                                            <div v-if="category.parent" class="text-xs text-blue-500 dark:text-blue-400">
-                                                Subcategory of: {{ category.parent.name }}
-                                            </div>
-                                            <div v-if="category.description" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                {{ category.description }}
+                                            <div class="flex items-center">
+                                                <img
+                                                    v-if="category.image"
+                                                    :src="'/uploads/' + category.image"
+                                                    alt="Category image"
+                                                    class="w-10 h-10 rounded-lg object-cover mr-3 border border-gray-200 dark:border-gray-700 shrink-0"
+                                                />
+                                                <div v-else class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center mr-3 text-gray-400 shrink-0">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                                        <span v-if="category.parent" class="text-gray-400 mr-1">↳</span>
+                                                        {{ category.name }}
+                                                    </div>
+                                                    <div v-if="category.parent" class="text-xs text-blue-500 dark:text-blue-400">
+                                                        Subcategory of: {{ category.parent.name }}
+                                                    </div>
+                                                    <div v-if="category.description" class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xs truncate">
+                                                        {{ category.description }}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">

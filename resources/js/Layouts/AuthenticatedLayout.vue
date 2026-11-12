@@ -16,7 +16,7 @@ const user = page.props.auth.user;
         <aside class="w-64 bg-white border-r border-slate-200/80 hidden md:flex flex-col flex-shrink-0">
             <!-- Brand / Logo -->
             <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                <Link :href="route('home')" class="flex items-center gap-2.5 group">
+                <a :href="route('home')" class="flex items-center gap-2.5 group">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 text-white flex items-center justify-center font-bold font-display text-lg shadow-sm">
                         A
                     </div>
@@ -26,7 +26,7 @@ const user = page.props.auth.user;
                         </span>
                         <span class="text-[9px] uppercase font-bold tracking-widest text-slate-400">Espace Client</span>
                     </div>
-                </Link>
+                </a>
             </div>
 
             <!-- Navigation Links -->
@@ -35,7 +35,7 @@ const user = page.props.auth.user;
                     Menu Principal
                 </div>
 
-                <Link
+                <a
                     :href="route('home')"
                     class="flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
                 >
@@ -43,7 +43,7 @@ const user = page.props.auth.user;
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                     Boutique en ligne
-                </Link>
+                </a>
 
                 <Link
                     :href="route('products.index')"
@@ -142,10 +142,10 @@ const user = page.props.auth.user;
         <div class="flex-1 flex flex-col min-h-screen overflow-hidden">
             <!-- Mobile Navigation Bar -->
             <header class="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-                <Link :href="route('home')" class="flex items-center gap-2">
+                <a :href="route('home')" class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-brand-600 text-white font-bold flex items-center justify-center text-sm">A</div>
                     <span class="font-extrabold font-display text-slate-900">Aquawa<span class="text-brand-600">Souk</span></span>
-                </Link>
+                </a>
 
                 <button
                     @click="showingNavigationDropdown = !showingNavigationDropdown"
@@ -159,7 +159,7 @@ const user = page.props.auth.user;
 
             <!-- Mobile Dropdown Menu -->
             <div v-if="showingNavigationDropdown" class="md:hidden bg-white border-b border-slate-200 p-4 space-y-2">
-                <Link :href="route('home')" class="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg">Accueil</Link>
+                <a :href="route('home')" class="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg">Accueil</a>
                 <Link :href="route('products.index')" class="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg">Produits</Link>
                 <Link :href="route('orders.index')" class="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg">Mes Commandes</Link>
                 <Link :href="route('cart.index')" class="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg">Mon Panier</Link>

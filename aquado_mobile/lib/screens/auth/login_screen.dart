@@ -43,23 +43,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      if (Navigator.canPop(context)) {
+      // If user is Admin, direct to the admin vendors approval screen
+      if (authProvider.isAdmin) {
+        Navigator.of(context).pushReplacementNamed('/admin/vendors');
+      } else if (Navigator.canPop(context)) {
         Navigator.pop(context, true);
       } else {
         Navigator.of(context).pushReplacementNamed('/home');
       }
     } else {
       if (mounted) {
+        final err = authProvider.error ??
+            'Échec de connexion. Vérifiez vos identifiants.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.error ??
-                'Échec de connexion. Vérifiez vos identifiants.'),
+            content: Text(err),
             backgroundColor: AppTheme.errorColor,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryColor.withOpacity(0.3),
+                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
                           blurRadius: 16,
                           offset: const Offset(0, 6),
                         ),
@@ -132,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 28),
 
                 // Email Field
                 TextFormField(
@@ -187,7 +194,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+
+                // Admin Autofill Chip (Convenience for testing)
+
+                const SizedBox(height: 12),
 
                 // Submit Button
                 Consumer<AuthProvider>(
@@ -226,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Switch to Register
                 Row(
@@ -258,6 +269,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 24),
+
+                // Server status chip at the bottom
               ],
             ),
           ),

@@ -2,6 +2,19 @@
 
 @section('title', $product->name . ' - AquawaSouk Tunisie')
 @section('meta_description', Str::limit(strip_tags($product->description ?? 'Achetez ' . $product->name . ' sur AquawaSouk au meilleur prix en Tunisie avec paiement à la livraison.'), 160))
+@php
+    $prodImage = null;
+    if ($product->primaryImage && !empty($product->primaryImage->image_path)) {
+        $prodImage = $product->primaryImage->image_path;
+    } elseif ($product->images && $product->images->isNotEmpty()) {
+        $prodImage = $product->images->first()->image_path;
+    }
+    $prodOgUrl = $prodImage
+        ? (Str::startsWith($prodImage, ['http://', 'https://']) ? $prodImage : (Str::startsWith($prodImage, 'uploads/') ? asset($prodImage) : asset('uploads/' . $prodImage)))
+        : asset('images/og-image.jpg');
+@endphp
+@section('og_image', $prodOgUrl)
+@section('og_type', 'product')
 
 @section('content')
 
@@ -14,6 +27,31 @@
             ? round((($product->price - $product->discount_price) / $product->price) * 100)
             : 0;
         
+        $activeVariations = $product->variations ? $product->variations->where('status', 'active')->values() : collect();
+        $hasVariations = $activeVariations->isNotEmpty();
+
+        $availableColors = $activeVariations->pluck('color')->filter(fn($c) => filled($c))->unique()->values();
+        $availableSizes = $activeVariations->pluck('size')->filter(fn($s) => filled($s))->unique()->values();
+
+        $hasColors = $availableColors->isNotEmpty();
+        $hasSizes = $availableSizes->isNotEmpty();
+
+        $colorHexMap = [
+            'noir' => '#111827', 'black' => '#111827', 'أسود' => '#111827',
+            'blanc' => '#ffffff', 'white' => '#ffffff', 'أبيض' => '#ffffff',
+            'rouge' => '#ef4444', 'red' => '#ef4444', 'أحمر' => '#ef4444',
+            'bleu' => '#3b82f6', 'blue' => '#3b82f6', 'أزرق' => '#3b82f6',
+            'vert' => '#22c55e', 'green' => '#22c55e', 'أخضر' => '#22c55e',
+            'jaune' => '#eab308', 'yellow' => '#eab308', 'أصفر' => '#eab308',
+            'orange' => '#f97316', 'برتقالي' => '#f97316',
+            'rose' => '#ec4899', 'pink' => '#ec4899', 'وردي' => '#ec4899',
+            'violet' => '#a855f7', 'purple' => '#a855f7', 'بنفسجي' => '#a855f7',
+            'gris' => '#6b7280', 'gray' => '#6b7280', 'grey' => '#6b7280', 'رمادي' => '#6b7280',
+            'marron' => '#92400e', 'brown' => '#92400e', 'بني' => '#92400e',
+            'beige' => '#d4b896', 'بيج' => '#d4b896',
+            'bleu marine' => '#1e3a8a', 'navy' => '#1e3a8a',
+        ];
+
         $tunisianGovernorates = [
             'Tunis' => ['fr' => 'Tunis', 'ar' => 'تونس'],
             'Ariana' => ['fr' => 'Ariana', 'ar' => 'أريانة'],
@@ -46,32 +84,102 @@
     @endphp
 
     <!-- BREADCRUMB NAVIGATION -->
-    <div class="bg-white border-b border-slate-200/80 py-3.5">
+    <div class="bg-white border-b border-slate-200/80 py-2.5 sm:py-3.5">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <nav class="flex items-center gap-2 text-xs text-slate-400 overflow-x-auto no-scrollbar" aria-label="Breadcrumb">
-                <a href="{{ route('blade.home') }}" class="hover:text-sky-600 transition shrink-0">{{ __('messages.home') }}</a>
+            <nav class="hidden sm:flex items-center gap-2 text-xs text-slate-400 overflow-x-auto no-scrollbar" aria-label="Breadcrumb">
+                <a href="{{ route('home') }}" class="hover:text-sky-600 transition shrink-0">{{ __('messages.home') }}</a>
                 <span class="text-slate-300 shrink-0">{!! $isAr ? '&larr;' : '&rarr;' !!}</span>
-                <a href="{{ route('blade.products.index') }}" class="hover:text-sky-600 transition shrink-0">{{ __('messages.products') }}</a>
+                <a href="{{ route('products.index') }}" class="hover:text-sky-600 transition shrink-0">{{ __('messages.products') }}</a>
                 @if($product->category)
                     <span class="text-slate-300 shrink-0">{!! $isAr ? '&larr;' : '&rarr;' !!}</span>
-                    <a href="{{ route('blade.products.index', ['category' => $product->category->slug]) }}" class="hover:text-sky-600 transition shrink-0">
-                        {{ $product->category->name }}
+                    <a href="{{ route('products.index', ['category' => $product->category->slug]) }}" class="hover:text-sky-600 transition shrink-0 inline-flex items-center gap-1.5">
+                        @if($product->category->image_url)
+                            <img src="{{ $product->category->image_url }}" alt="{{ $product->category->name }}" class="w-4 h-4 rounded-md object-contain shrink-0 border border-slate-200">
+                        @endif
+                        <span>{{ $product->category->name }}</span>
                     </a>
                 @endif
                 <span class="text-slate-300 shrink-0">{!! $isAr ? '&larr;' : '&rarr;' !!}</span>
                 <span class="text-slate-700 font-bold truncate">{{ $product->name }}</span>
             </nav>
+            <div class="flex sm:hidden items-center justify-between text-xs">
+                <a href="{{ route('products.index') }}" class="inline-flex items-center gap-1.5 font-bold text-slate-600 hover:text-sky-600 transition">
+                    <span>{!! $isAr ? '&rarr;' : '&larr;' !!}</span>
+                    <span>{{ $isAr ? 'العودة للمنتجات' : 'Tous les produits' }}</span>
+                </a>
+                @if($product->category)
+                    <a href="{{ route('products.index', ['category' => $product->category->slug]) }}" class="px-2.5 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 inline-flex items-center gap-1.5">
+                        @if($product->category->image_url)
+                            <img src="{{ $product->category->image_url }}" alt="{{ $product->category->name }}" class="w-3.5 h-3.5 rounded object-contain shrink-0">
+                        @endif
+                        <span>{{ $product->category->name }}</span>
+                    </a>
+                @endif
+            </div>
         </div>
     </div>
 
     <!-- MAIN PRODUCT DETAIL CONTAINER (Alpine State) -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8" x-data="{
         activeImage: '{{ $product->image_url }}',
         qty: 1,
+        showMoreNotes: false,
+        baseUnitPrice: {{ $unitPrice }},
         unitPrice: {{ $unitPrice }},
         shippingPrice: {{ $vendorShipping }},
         copied: false,
-        activeTab: 'description'
+        activeTab: 'description',
+        hasVariations: {{ $hasVariations ? 'true' : 'false' }},
+        hasColors: {{ $hasColors ? 'true' : 'false' }},
+        hasSizes: {{ $hasSizes ? 'true' : 'false' }},
+        variations: {{ Js::from($activeVariations->map(fn($v) => [
+            'id' => $v->id,
+            'color' => $v->color,
+            'size' => $v->size,
+            'stock' => (int)$v->stock,
+            'price' => $v->price ? (float)$v->price : null,
+        ])) }},
+        selectedColor: null,
+        selectedSize: null,
+        selectedVariation: null,
+        stockCount: {{ (int)$product->stock }},
+        isReady() {
+            if (!this.hasVariations) return true;
+            if (this.hasColors && !this.selectedColor) return false;
+            if (this.hasSizes && !this.selectedSize) return false;
+            return true;
+        },
+        selectColor(color) {
+            this.selectedColor = (this.selectedColor === color ? null : color);
+            this.updateVariation();
+        },
+        selectSize(size) {
+            this.selectedSize = (this.selectedSize === size ? null : size);
+            this.updateVariation();
+        },
+        updateVariation() {
+            if (!this.hasVariations) return;
+            const match = this.variations.find(v => {
+                const colorOk = !this.hasColors || v.color === this.selectedColor;
+                const sizeOk = !this.hasSizes || v.size === this.selectedSize;
+                return colorOk && sizeOk;
+            });
+            this.selectedVariation = match || null;
+            if (match) {
+                if (match.price && match.price > 0) {
+                    this.unitPrice = match.price;
+                } else {
+                    this.unitPrice = this.baseUnitPrice;
+                }
+                this.stockCount = match.stock;
+            } else {
+                this.unitPrice = this.baseUnitPrice;
+                this.stockCount = {{ (int)$product->stock }};
+            }
+            if (this.qty > this.stockCount && this.stockCount > 0) {
+                this.qty = 1;
+            }
+        }
     }">
 
         <!-- Flash alerts -->
@@ -99,15 +207,15 @@
             </div>
         @endif
 
-        <div class="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-8 lg:p-10 shadow-sm">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+        <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-8 lg:p-10 shadow-sm">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start">
                 
                 <!-- ============================================== -->
                 <!-- LEFT COLUMN: PRODUCT GALLERY & TRUST BADGES    -->
                 <!-- ============================================== -->
-                <div class="lg:col-span-6 lg:sticky lg:top-24 space-y-5">
+                <div class="lg:col-span-6 lg:sticky lg:top-24 space-y-4 sm:space-y-5">
                     <!-- Main Stage Image Box -->
-                    <div class="relative w-full aspect-square bg-slate-50/80 rounded-3xl border border-slate-200/80 overflow-hidden flex items-center justify-center p-6 shadow-inner group">
+                    <div class="relative w-full aspect-square bg-slate-50/80 rounded-2xl sm:rounded-3xl border border-slate-200/80 overflow-hidden flex items-center justify-center p-4 sm:p-6 shadow-inner group">
                         <img 
                             :src="activeImage" 
                             alt="{{ $product->name }}" 
@@ -117,13 +225,13 @@
                         
                         <!-- Discount Badge -->
                         @if($discountPct > 0)
-                            <div class="absolute top-4 left-4 rtl:left-auto rtl:right-4 px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 text-white font-black text-xs shadow-lg shadow-rose-600/30">
+                            <div class="absolute top-3 left-3 sm:top-4 sm:left-4 rtl:left-auto rtl:right-3 sm:rtl:right-4 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 text-white font-black text-xs shadow-lg shadow-rose-600/30">
                                 -{{ $discountPct }}% {{ __('messages.save') }}
                             </div>
                         @endif
 
                         <!-- Views Counter -->
-                        <div class="absolute bottom-4 right-4 rtl:right-auto rtl:left-4 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-[11px] font-bold text-slate-700 shadow-sm border border-slate-200/80 flex items-center gap-1.5">
+                        <div class="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 rtl:right-auto rtl:left-3 sm:rtl:left-4 px-2.5 py-1 sm:px-3 sm:py-1 rounded-full bg-white/90 backdrop-blur-md text-[10px] sm:text-[11px] font-bold text-slate-700 shadow-sm border border-slate-200/80 flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             <span>👁️ {{ $product->views ?? 0 }} {{ $isAr ? 'مشاهدة' : 'vues' }}</span>
                         </div>
@@ -131,28 +239,39 @@
 
                     <!-- Thumbnails Carousel / Strip -->
                     @php
+                        $resolveImg = function($path) {
+                            if (empty($path)) return null;
+                            return (str_starts_with($path, 'http://') || str_starts_with($path, 'https://'))
+                                ? $path
+                                : asset('uploads/' . ltrim($path, '/'));
+                        };
+
                         $allImages = collect();
-                        if ($product->primaryImage) {
-                            $allImages->push(asset('uploads/' . $product->primaryImage->image_path));
+                        if ($product->primaryImage && !empty($product->primaryImage->image_path)) {
+                            $allImages->push($resolveImg($product->primaryImage->image_path));
                         }
                         if ($product->images && count($product->images)) {
                             foreach($product->images as $extraImg) {
-                                $allImages->push(asset('uploads/' . $extraImg->image_path));
+                                if (!empty($extraImg->image_path)) {
+                                    $allImages->push($resolveImg($extraImg->image_path));
+                                }
                             }
                         }
-                        if ($allImages->isEmpty() && $product->image_url) {
+                        if ($product->image_url) {
                             $allImages->push($product->image_url);
                         }
+                        $allImages = $allImages->filter()->unique()->values();
                     @endphp
 
                     @if($allImages->count() > 1)
-                        <div class="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+                        <div class="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-1">
                             @foreach($allImages as $idx => $imgSrc)
                                 <button 
                                     type="button"
+                                    style="max-width:fit-content;"
                                     @click="activeImage = '{{ $imgSrc }}'" 
                                     :class="activeImage === '{{ $imgSrc }}' ? 'ring-2 ring-sky-600 border-sky-600' : 'opacity-70 hover:opacity-100 border-slate-200'" 
-                                    class="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl border bg-slate-50 p-1.5 shrink-0 overflow-hidden transition-all duration-200 cursor-pointer shadow-xs"
+                                    class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl border bg-slate-50 p-1.5 shrink-0 overflow-hidden transition-all duration-200 cursor-pointer shadow-xs"
                                 >
                                     <img src="{{ $imgSrc }}" alt="{{ $product->name }} thumb {{ $idx + 1 }}" class="w-full h-full object-contain">
                                 </button>
@@ -160,8 +279,17 @@
                         </div>
                     @endif
 
-                    <!-- Gallery Trust / Reassurance Bar -->
-                    <div class="grid grid-cols-3 gap-2.5 pt-2 text-center text-slate-600 text-xs">
+                    <!-- Mobile Reassurance Strip -->
+                    <div class="sm:hidden flex items-center justify-around py-2 px-3 rounded-xl bg-slate-50 border border-slate-200/70 text-[10px] font-bold text-slate-700">
+                        <span class="flex items-center gap-1"><span>🚚</span> {{ $isAr ? '24-48 ساعة' : 'Express 24-48h' }}</span>
+                        <span class="text-slate-300">•</span>
+                        <span class="flex items-center gap-1"><span>💵</span> {{ $isAr ? 'الدفع نقداً' : 'Paiement cash' }}</span>
+                        <span class="text-slate-300">•</span>
+                        <span class="flex items-center gap-1"><span>🛡️</span> {{ $isAr ? 'منتج معتمد' : 'Vérifié' }}</span>
+                    </div>
+
+                    <!-- Gallery Trust / Reassurance Bar (Desktop) -->
+                    <div class="hidden sm:grid grid-cols-3 gap-2.5 pt-2 text-center text-slate-600 text-xs">
                         <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
                             <span class="text-lg block mb-0.5">🚚</span>
                             <p class="font-bold text-slate-900 text-[11px]">{{ $isAr ? 'شحن 24-48 ساعة' : 'Livraison Express' }}</p>
@@ -180,7 +308,7 @@
                     </div>
 
                     <!-- Social Share Strip -->
-                    <div class="pt-2 flex items-center justify-between border-t border-slate-100">
+                    <div class="hidden sm:flex pt-2 items-center justify-between border-t border-slate-100">
                         <span class="text-xs font-bold text-slate-500">{{ $isAr ? 'مشاركة المنتج :' : 'Partager ce produit :' }}</span>
                         <div class="flex items-center gap-2">
                             <!-- Facebook Share (Populates status with URL) -->
@@ -231,7 +359,7 @@
                         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-slate-400">{{ $isAr ? 'يباع ويشحن من قِبل :' : 'Vendu et expédié par :' }}</span>
-                                <a href="{{ route('blade.vendors.show', $product->vendor->slug) }}" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold transition">
+                                <a href="{{ route('vendors.show', $product->vendor->slug) }}" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold transition">
                                     <span>🏪 {{ $product->vendor->shop_name }}</span>
                                     <span class="text-[10px] text-emerald-600 bg-emerald-100/80 px-1.5 py-0.5 rounded-full">✓ {{ __('messages.verified_partner') }}</span>
                                 </a>
@@ -274,17 +402,17 @@
                             </span>
                             <div class="flex items-baseline gap-3">
                                 @if($discountPct > 0)
-                                    <span class="text-3xl sm:text-4xl font-black text-rose-600 tracking-tight">
+                                    <span class="text-3xl sm:text-4xl font-black text-rose-600 tracking-tight" x-text="unitPrice.toFixed(2) + ' {{ $currency }}'">
                                         {{ number_format($product->discount_price, 2) }} <span class="text-base font-bold">{{ $currency }}</span>
                                     </span>
-                                    <span class="text-base text-slate-400 line-through">
+                                    <span class="text-base text-slate-400 line-through" x-show="!selectedVariation || !selectedVariation.price">
                                         {{ number_format($product->price, 2) }} {{ $currency }}
                                     </span>
-                                    <span class="text-xs font-black text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full">
+                                    <span class="text-xs font-black text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full" x-show="!selectedVariation || !selectedVariation.price">
                                         -{{ number_format($product->price - $product->discount_price, 2) }} {{ $currency }}
                                     </span>
                                 @else
-                                    <span class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                                    <span class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight" x-text="unitPrice.toFixed(2) + ' {{ $currency }}'">
                                         {{ number_format($product->price, 2) }} <span class="text-base font-bold">{{ $currency }}</span>
                                     </span>
                                 @endif
@@ -307,50 +435,168 @@
                         </div>
                     @endif
 
+                    <!-- VARIATIONS (COLORS & SIZES) SELECTOR IF EXIST -->
+                    @if($hasVariations)
+                        <div class="p-5 rounded-3xl bg-slate-50/90 border-2 border-sky-500/30 shadow-xs space-y-4">
+                            <div class="flex items-center justify-between pb-2 border-b border-slate-200/80">
+                                <span class="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                                    <span>✨</span>
+                                    <span>{{ $isAr ? 'خيارات المنتج المتوفرة' : 'Options & Déclinaisons' }}</span>
+                                </span>
+                                <span class="text-[11px] font-bold text-slate-500">
+                                    {{ $activeVariations->count() }} {{ $isAr ? 'خيارات متوفرة' : 'variantes' }}
+                                </span>
+                            </div>
+
+                            <!-- Color Choice -->
+                            @if($hasColors)
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                            <span>🎨</span>
+                                            <span>{{ $isAr ? 'اللون :' : 'Couleur :' }}</span>
+                                            <span x-show="selectedColor" x-cloak class="text-sky-600 font-black" x-text="selectedColor"></span>
+                                        </span>
+                                        <span x-show="!selectedColor" class="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                                            {{ $isAr ? 'إجباري' : 'Obligatoire' }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="flex flex-wrap gap-2.5">
+                                        @foreach($availableColors as $col)
+                                            @php
+                                                $hex = $colorHexMap[mb_strtolower($col)] ?? null;
+                                                $isWhiteOrLight = in_array(mb_strtolower($col), ['blanc', 'white', 'أبيض', 'beige', 'بيج', 'jaune']);
+                                            @endphp
+                                            <button
+                                                type="button"
+                                                @click="selectColor('{{ addslashes($col) }}')"
+                                                :class="selectedColor === '{{ addslashes($col) }}' ? 'ring-2 ring-sky-600 ring-offset-2 border-sky-600 scale-105 bg-sky-50 text-sky-900' : 'hover:scale-105 opacity-90 border-slate-300 bg-white text-slate-800'"
+                                                class="relative inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-2xs transition-all duration-150 cursor-pointer text-xs font-bold"
+                                                title="{{ $col }}"
+                                            >
+                                                @if($hex)
+                                                    <span class="w-4 h-4 rounded-full border {{ $isWhiteOrLight ? 'border-slate-300' : 'border-black/10' }} shrink-0 shadow-2xs" style="background-color: {{ $hex }}"></span>
+                                                @else
+                                                    <span class="w-3.5 h-3.5 rounded-full bg-slate-400 shrink-0"></span>
+                                                @endif
+                                                <span>{{ $col }}</span>
+                                                <span x-show="selectedColor === '{{ addslashes($col) }}'" x-cloak class="text-sky-600 text-xs font-black">✓</span>
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Size Choice -->
+                            @if($hasSizes)
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                            <span>📏</span>
+                                            <span>{{ $isAr ? 'المقاس / الحجم :' : 'Taille / Pointure :' }}</span>
+                                            <span x-show="selectedSize" x-cloak class="text-sky-600 font-black" x-text="selectedSize"></span>
+                                        </span>
+                                        <span x-show="!selectedSize" class="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                                            {{ $isAr ? 'إجباري' : 'Obligatoire' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($availableSizes as $sz)
+                                            <button
+                                                type="button"
+                                                @click="selectSize('{{ addslashes($sz) }}')"
+                                                :class="selectedSize === '{{ addslashes($sz) }}' ? 'bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-600/20 scale-105' : 'bg-white text-slate-700 border-slate-300 hover:border-sky-500'"
+                                                class="min-w-10 h-10 px-3 rounded-xl border text-xs font-black transition-all duration-150 cursor-pointer flex items-center justify-center shadow-xs"
+                                            >
+                                                {{ $sz }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Selected Variation feedback (Stock & Custom Price) -->
+                            <div x-show="isReady() && selectedVariation" x-cloak class="pt-2 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <div>
+                                    <template x-if="selectedVariation && selectedVariation.stock > 0">
+                                        <span class="text-emerald-700 font-bold flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span>{{ $isAr ? 'متوفر بالمخزون' : 'En stock' }} (<span x-text="selectedVariation.stock"></span> {{ $isAr ? 'قطعة' : 'disponibles' }})</span>
+                                        </span>
+                                    </template>
+                                    <template x-if="selectedVariation && selectedVariation.stock <= 0">
+                                        <span class="text-rose-700 font-bold flex items-center gap-1.5 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
+                                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                                            <span>{{ __('messages.out_of_stock') }}</span>
+                                        </span>
+                                    </template>
+                                </div>
+                                <template x-if="selectedVariation && selectedVariation.price">
+                                    <span class="text-xs font-black text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-full">
+                                        {{ $isAr ? 'سعر الخيار :' : 'Prix pour ce choix :' }} <span x-text="selectedVariation.price.toFixed(2) + ' {{ $currency }}'"></span>
+                                    </span>
+                                </template>
+                            </div>
+
+                            <!-- Warning if variations exist but not chosen -->
+                            <div x-show="!isReady()" class="p-3 rounded-2xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs flex items-center gap-2">
+                                <span class="text-base">⚠️</span>
+                                <span class="font-bold">
+                                    {{ $isAr ? 'يرجى اختيار اللون والمقاس المطلوبين قبل إتمام الطلب.' : 'Veuillez sélectionner vos options (couleur / taille) ci-dessus avant de commander.' }}
+                                </span>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- ============================================== -->
                     <!-- FORMULAIRE DE COMMANDE DIRECTE (CASH ON DELIVERY) -->
                     <!-- ============================================== -->
-                    <div id="form-commande-directe" class="rounded-3xl bg-white border-2 border-emerald-500/40 shadow-xl overflow-hidden scroll-mt-24">
+                    <div id="form-commande-directe" class="rounded-2xl sm:rounded-3xl bg-white border-2 border-emerald-500/40 shadow-lg sm:shadow-xl overflow-hidden scroll-mt-20">
                         <!-- Top Banner -->
-                        <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-700 p-5 text-white flex flex-wrap items-center justify-between gap-3">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 font-black text-xl flex items-center justify-center shadow-md shrink-0">
+                        <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-700 p-3.5 sm:p-5 text-white flex flex-wrap items-center justify-between gap-2.5">
+                            <div class="flex items-center gap-2.5 sm:gap-3">
+                                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-400 text-slate-950 font-black text-base sm:text-xl flex items-center justify-center shadow-md shrink-0">
                                     ⚡
                                 </div>
                                 <div>
-                                    <h3 class="text-base font-black tracking-tight leading-snug">
+                                    <h3 class="text-sm sm:text-base font-black tracking-tight leading-snug">
                                         {{ __('messages.direct_order_title') }}
                                     </h3>
-                                    <p class="text-xs text-emerald-100 font-medium">
+                                    <p class="text-[11px] sm:text-xs text-emerald-100 font-medium">
                                         {{ __('messages.direct_order_subtitle') }}
                                     </p>
                                 </div>
                             </div>
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-bold border border-white/20">
+                            <span class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[11px] sm:text-xs font-bold border border-white/20">
                                 <span>💵</span>
                                 <span>{{ __('messages.cash_on_delivery_badge') }}</span>
                             </span>
                         </div>
 
                         <!-- Form Content -->
-                        <form action="{{ route('orders.direct') }}" method="POST" class="p-6 sm:p-7 space-y-5 bg-gradient-to-b from-slate-50/50 to-white">
+                        <form action="{{ route('orders.direct') }}" method="POST" class="p-4 sm:p-7 space-y-4 sm:space-y-5 bg-gradient-to-b from-slate-50/50 to-white">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
                             <input type="hidden" name="quantity" :value="qty">
+                            <input type="hidden" name="color" :value="selectedColor">
+                            <input type="hidden" name="size" :value="selectedSize">
+                            <input type="hidden" name="variation_id" :value="selectedVariation ? selectedVariation.id : ''">
 
                             <!-- Quantity Stepper & Live Total Panel -->
-                            <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex flex-wrap items-center justify-between gap-4">
+                            <div class="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/90 shadow-xs flex items-center justify-between gap-3">
                                 <!-- Stepper -->
                                 <div>
-                                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                                    <label class="block text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                                         {{ __('messages.quantity') }} :
                                     </label>
                                     <div class="inline-flex items-center rounded-xl border border-slate-300 bg-slate-50 overflow-hidden shadow-inner">
                                         <button 
                                             type="button" 
                                             @click="if (qty > 1) qty--" 
-                                            class="px-3.5 py-2 text-slate-700 hover:bg-slate-200 font-black text-base transition cursor-pointer select-none"
-                                            :disabled="qty <= 1"
+                                            class="px-3 py-1.5 sm:px-3.5 sm:py-2 text-slate-700 hover:bg-slate-200 font-black text-sm sm:text-base transition cursor-pointer select-none"
+                                            :disabled="qty <= 1 || stockCount <= 0"
                                         >
                                             &minus;
                                         </button>
@@ -358,13 +604,15 @@
                                             type="number" 
                                             x-model.number="qty" 
                                             min="1" 
-                                            max="{{ $product->stock ?? 99 }}" 
-                                            class="w-14 text-center border-0 bg-transparent py-1.5 text-sm font-extrabold text-slate-900 focus:ring-0"
+                                            :max="stockCount > 0 ? stockCount : 1" 
+                                            :disabled="stockCount <= 0"
+                                            class="w-12 sm:w-14 text-center border-0 bg-transparent py-1 text-sm font-extrabold text-slate-900 focus:ring-0"
                                         />
                                         <button 
                                             type="button" 
-                                            @click="if (qty < {{ $product->stock ?? 99 }}) qty++" 
-                                            class="px-3.5 py-2 text-slate-700 hover:bg-slate-200 font-black text-base transition cursor-pointer select-none"
+                                            @click="if (qty < stockCount) qty++" 
+                                            class="px-3 py-1.5 sm:px-3.5 sm:py-2 text-slate-700 hover:bg-slate-200 font-black text-sm sm:text-base transition cursor-pointer select-none"
+                                            :disabled="qty >= stockCount || stockCount <= 0"
                                         >
                                             &plus;
                                         </button>
@@ -373,23 +621,23 @@
 
                                 <!-- Live Price Computed Box -->
                                 <div class="text-right rtl:text-left">
-                                    <div class="text-xs text-slate-500">
+                                    <div class="text-[11px] sm:text-xs text-slate-500">
                                         {{ __('messages.shipping_fee') }} : 
                                         <strong class="text-slate-800">{{ number_format($vendorShipping, 2) }} {{ $currency }}</strong>
                                     </div>
-                                    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                                    <div class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                                         {{ __('messages.total_to_pay') }} :
                                     </div>
-                                    <div class="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight" x-text="((unitPrice * qty) + shippingPrice).toFixed(2) + ' {{ $currency }}'">
+                                    <div class="text-xl sm:text-3xl font-black text-emerald-600 tracking-tight" x-text="((unitPrice * qty) + shippingPrice).toFixed(2) + ' {{ $currency }}'">
                                         {{ number_format($unitPrice + $vendorShipping, 2) }} {{ $currency }}
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Inputs: Name & Phone -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">
                                         {{ __('messages.full_name') }} <span class="text-rose-500">*</span>
                                     </label>
                                     <div class="relative">
@@ -407,7 +655,7 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">
                                         {{ __('messages.phone_number') }} <span class="text-rose-500">*</span>
                                     </label>
                                     <div class="relative">
@@ -424,10 +672,10 @@
                                 </div>
                             </div>
 
-                            <!-- Inputs: Governorate & Postal Code -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Inputs: Governorate & Delivery Address -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">
                                         {{ __('messages.city_governorate') }} <span class="text-rose-500">*</span>
                                     </label>
                                     <div class="relative">
@@ -450,65 +698,69 @@
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                                        {{ __('messages.postal_code') }} <span class="text-slate-400 font-normal">({{ $isAr ? 'اختياري' : 'Optionnel' }})</span>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">
+                                        {{ __('messages.delivery_address') }} <span class="text-rose-500">*</span>
                                     </label>
                                     <div class="relative">
-                                        <span class="absolute inset-y-0 {{ $isAr ? 'right-0 pr-3.5' : 'left-0 pl-3.5' }} flex items-center pointer-events-none text-slate-400 text-sm">📮</span>
+                                        <span class="absolute inset-y-0 {{ $isAr ? 'right-0 pr-3.5' : 'left-0 pl-3.5' }} flex items-center pointer-events-none text-slate-400 text-sm">🏠</span>
                                         <input 
                                             type="text" 
-                                            name="shipping_postal_code" 
-                                            value="{{ old('shipping_postal_code') }}" 
-                                            placeholder="Ex: 1000, 2080..." 
+                                            name="shipping_address" 
+                                            value="{{ old('shipping_address') }}" 
+                                            required 
+                                            placeholder="{{ $isAr ? 'الشارع، الحي، رقم المنزل...' : 'Rue, Quartier, Bâtiment, N°...' }}" 
                                             class="w-full {{ $isAr ? 'pr-10 pl-3.5' : 'pl-10 pr-3.5' }} py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 text-xs font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-xs outline-hidden transition"
                                         >
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Full Address Input -->
+                            <!-- Optional Toggle: Postal Code & Notes -->
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                                    {{ __('messages.delivery_address') }} <span class="text-rose-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <span class="absolute inset-y-0 {{ $isAr ? 'right-0 pr-3.5' : 'left-0 pl-3.5' }} flex items-center pointer-events-none text-slate-400 text-sm">🏠</span>
-                                    <input 
-                                        type="text" 
-                                        name="shipping_address" 
-                                        value="{{ old('shipping_address') }}" 
-                                        required 
-                                        placeholder="{{ $isAr ? 'الشارع، الحي، رقم المنزل أو العمارة...' : 'Rue, Quartier, Bâtiment, N° de porte ou repère...' }}" 
-                                        class="w-full {{ $isAr ? 'pr-10 pl-3.5' : 'pl-10 pr-3.5' }} py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 text-xs font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-xs outline-hidden transition"
-                                    >
+                                <button 
+                                    type="button" 
+                                    @click="showMoreNotes = !showMoreNotes" 
+                                    class="text-xs text-slate-500 hover:text-emerald-700 font-bold flex items-center gap-1.5 py-0.5 cursor-pointer"
+                                >
+                                    <span x-text="showMoreNotes ? '▲' : '▼'" class="text-[9px]"></span>
+                                    <span>{{ $isAr ? 'رمز بريدي أو ملاحظات للموزع (اختياري)' : 'Code postal ou remarques de livraison (optionnel)' }}</span>
+                                </button>
+                                <div x-show="showMoreNotes" x-cloak class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-600 mb-1">
+                                            {{ __('messages.postal_code') }}
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            name="shipping_postal_code" 
+                                            value="{{ old('shipping_postal_code') }}" 
+                                            placeholder="Ex: 1000, 2080..." 
+                                            class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 text-xs font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-xs outline-hidden transition"
+                                        >
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-600 mb-1">
+                                            {{ __('messages.shipping_notes') }}
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            name="notes" 
+                                            value="{{ old('notes') }}" 
+                                            placeholder="{{ $isAr ? 'مثال: اتصل بي قبل الوصول...' : 'Ex: Appelez avant d\'arriver...' }}" 
+                                            class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 text-xs font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-xs outline-hidden transition"
+                                        >
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Shipping Remarks (Optional) -->
-                            <div>
-                                <label class="block text-xs font-medium text-slate-600 mb-1.5">
-                                    {{ __('messages.shipping_notes') }} <span class="text-slate-400 font-normal">({{ $isAr ? 'اختياري' : 'Optionnel' }})</span>
-                                </label>
-                                <input 
-                                    type="text" 
-                                    name="notes" 
-                                    value="{{ old('notes') }}" 
-                                    placeholder="{{ $isAr ? 'مثال: اتصل بي قبل الوصول، التوصيل بعد الظهر...' : 'Ex: Appelez-moi avant d\'arriver, disponible après 14h...' }}" 
-                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 text-xs font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-xs outline-hidden transition"
-                                >
-                            </div>
-
                             <!-- Payment Method Notice (Cash on Delivery) -->
-                            <div class="space-y-1.5">
-                                <label class="block text-xs font-bold text-slate-700">
-                                    {{ $isAr ? 'طريقة الدفع' : 'Mode de règlement' }}
-                                </label>
-                                <div class="p-3.5 rounded-2xl border border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20 flex items-center gap-3">
+                            <div class="space-y-1">
+                                <div class="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-emerald-500 bg-emerald-50/70 ring-1 ring-emerald-500/20 flex items-center gap-2.5 sm:gap-3">
                                     <input type="hidden" name="payment_method" value="cod">
                                     <span class="text-xl">💵</span>
                                     <div class="text-left rtl:text-right">
                                         <span class="block text-xs font-black text-slate-900">{{ $isAr ? 'الدفع عند الاستلام (نقداً)' : 'Paiement à la livraison (Espèces)' }}</span>
-                                        <span class="block text-[10px] text-slate-600">{{ $isAr ? 'الدفع نقداً عند وصول الطرد إلى باب منزلك' : 'Réglez directement le livreur à la réception de votre colis' }}</span>
+                                        <span class="block text-[10px] text-slate-600">{{ $isAr ? 'الدفع نقداً عند استلام الطرد' : 'Réglez directement le livreur à la réception de votre colis' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -516,28 +768,32 @@
                             <!-- Master Submit CTA Button -->
                             <button 
                                 type="submit" 
-                                class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm uppercase tracking-wide shadow-lg shadow-emerald-600/30 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 active:scale-98 cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-2"
+                                :disabled="!isReady() || (hasVariations && selectedVariation && selectedVariation.stock <= 0) || stockCount <= 0"
+                                :class="(!isReady() || (hasVariations && selectedVariation && selectedVariation.stock <= 0) || stockCount <= 0) ? 'opacity-50 cursor-not-allowed' : 'hover:from-emerald-500 hover:to-teal-500 cursor-pointer'"
+                                class="w-full py-3.5 sm:py-4 px-5 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white font-black text-xs sm:text-sm uppercase tracking-wide shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 active:scale-98 flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2"
                             >
-                                <span class="flex items-center gap-2 text-base">
+                                <span class="flex items-center gap-1.5 text-sm sm:text-base">
                                     <span>⚡</span>
-                                    <span>{{ __('messages.confirm_direct_order') }}</span>
+                                    <span x-show="isReady() && stockCount > 0">{{ __('messages.confirm_direct_order') }}</span>
+                                    <span x-show="!isReady()" x-cloak>{{ $isAr ? 'يرجى اختيار اللون / المقاس' : 'Veuillez choisir vos options' }}</span>
+                                    <span x-show="isReady() && stockCount <= 0" x-cloak>{{ __('messages.out_of_stock') }}</span>
                                 </span>
-                                <span class="text-emerald-100 text-xs font-extrabold bg-emerald-700/60 px-3 py-1 rounded-full">
+                                <span x-show="isReady() && stockCount > 0" class="text-emerald-100 text-[11px] sm:text-xs font-extrabold bg-emerald-700/60 px-2.5 py-0.5 rounded-full">
                                     {{ __('messages.total') }} : <span x-text="((unitPrice * qty) + shippingPrice).toFixed(2) + ' {{ $currency }}'"></span>
                                 </span>
                             </button>
 
                             <!-- Micro reassurance below button -->
-                            <div class="grid grid-cols-3 gap-2 pt-3 border-t border-slate-200/80 text-center text-[11px] font-bold text-slate-600">
-                                <div class="flex items-center justify-center gap-1.5">
+                            <div class="grid grid-cols-3 gap-1.5 sm:gap-2 pt-2.5 sm:pt-3 border-t border-slate-200/80 text-center text-[10px] sm:text-[11px] font-bold text-slate-600">
+                                <div class="flex items-center justify-center gap-1">
                                     <span class="text-emerald-600">🚚</span>
                                     <span>{{ __('messages.fast_delivery_badge') }}</span>
                                 </div>
-                                <div class="flex items-center justify-center gap-1.5">
+                                <div class="flex items-center justify-center gap-1">
                                     <span class="text-emerald-600">💵</span>
                                     <span>{{ __('messages.cash_on_delivery_badge') }}</span>
                                 </div>
-                                <div class="flex items-center justify-center gap-1.5">
+                                <div class="flex items-center justify-center gap-1">
                                     <span class="text-emerald-600">📞</span>
                                     <span>{{ __('messages.phone_confirmation_badge') }}</span>
                                 </div>
@@ -546,25 +802,30 @@
                     </div>
 
                     <!-- Divider: Or Add to Cart -->
-                    <div class="relative flex py-2 items-center">
+                    <div class="relative flex py-1 sm:py-2 items-center">
                         <div class="flex-grow border-t border-slate-200"></div>
-                        <span class="flex-shrink mx-4 text-xs uppercase tracking-wider text-slate-400 font-bold">
+                        <span class="flex-shrink mx-3 sm:mx-4 text-[11px] sm:text-xs uppercase tracking-wider text-slate-400 font-bold">
                             {{ __('messages.or_add_to_cart') }}
                         </span>
                         <div class="flex-grow border-t border-slate-200"></div>
                     </div>
 
                     <!-- Secondary Standard Add to Cart Form -->
-                    <div class="flex flex-col sm:flex-row items-center gap-3">
+                    <div class="flex items-center gap-2.5 sm:gap-3">
                         <form action="{{ route('cart.add') }}" method="POST" class="flex-1 w-full">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
                             <input type="hidden" name="quantity" :value="qty">
+                            <input type="hidden" name="color" :value="selectedColor">
+                            <input type="hidden" name="size" :value="selectedSize">
+                            <input type="hidden" name="variation_id" :value="selectedVariation ? selectedVariation.id : ''">
                             <button 
                                 type="submit" 
-                                class="w-full py-3.5 px-6 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border-2 border-slate-300 hover:border-slate-400 shadow-xs flex items-center justify-center gap-2.5 transition active:scale-98 cursor-pointer"
+                                :disabled="!isReady() || (hasVariations && selectedVariation && selectedVariation.stock <= 0) || stockCount <= 0"
+                                :class="(!isReady() || (hasVariations && selectedVariation && selectedVariation.stock <= 0) || stockCount <= 0) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'"
+                                class="w-full py-3 sm:py-3.5 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-white text-slate-800 font-bold text-xs sm:text-sm border-2 border-slate-300 hover:border-slate-400 shadow-xs flex items-center justify-center gap-2 transition active:scale-98"
                             >
-                                <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                                 </svg>
                                 <span>{{ __('messages.add_to_cart') }}</span>
@@ -576,11 +837,11 @@
                             type="button"
                             onclick="toggleProductWishlist({{ $product->id }})"
                             id="btn-wishlist-detail"
-                            class="w-full sm:w-auto py-3.5 px-4 rounded-2xl border-2 border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs {{ ($isFavorited ?? false) ? 'bg-rose-50 border-rose-300 text-rose-600' : '' }}"
+                            class="py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border-2 border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs {{ ($isFavorited ?? false) ? 'bg-rose-50 border-rose-300 text-rose-600' : '' }}"
                             title="{{ ($isFavorited ?? false) ? 'Retirer des favoris' : 'Ajouter aux favoris' }}"
                         >
                             <span class="text-base" id="wishlist-icon">{{ ($isFavorited ?? false) ? '❤️' : '🤍' }}</span>
-                            <span id="wishlist-text" class="sm:hidden lg:inline">{{ ($isFavorited ?? false) ? ($isAr ? 'في المفضلة' : 'Favoris') : ($isAr ? 'حفظ' : 'Favoris') }}</span>
+                            <span id="wishlist-text" class="hidden sm:inline">{{ ($isFavorited ?? false) ? ($isAr ? 'في المفضلة' : 'Favoris') : ($isAr ? 'حفظ' : 'Favoris') }}</span>
                         </button>
                     </div>
 
@@ -592,13 +853,13 @@
         <!-- ============================================== -->
         <!-- DETAILS, SPECIFICATIONS & REVIEWS TABS SECTION -->
         <!-- ============================================== -->
-        <div class="mt-12 bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-sm">
-            <div class="flex items-center gap-6 border-b border-slate-200 pb-4 overflow-x-auto no-scrollbar">
+        <div class="mt-8 sm:mt-12 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-8 shadow-sm">
+            <div class="flex items-center gap-1.5 sm:gap-6 border-b border-slate-200 pb-3 sm:pb-4 overflow-x-auto no-scrollbar">
                 <button 
                     type="button"
                     @click="activeTab = 'description'" 
-                    :class="activeTab === 'description' ? 'border-sky-600 text-sky-600 font-black' : 'border-transparent text-slate-500 hover:text-slate-800 font-bold'" 
-                    class="pb-2 border-b-2 text-sm transition cursor-pointer whitespace-nowrap"
+                    :class="activeTab === 'description' ? 'bg-sky-50 sm:bg-transparent text-sky-600 sm:border-sky-600 font-black' : 'text-slate-500 hover:text-slate-800 sm:border-transparent font-bold'" 
+                    class="px-3 py-1.5 sm:px-0 sm:py-0 rounded-xl sm:rounded-none sm:pb-2 sm:border-b-2 text-xs sm:text-sm transition cursor-pointer whitespace-nowrap"
                 >
                     {{ __('messages.description') }}
                 </button>
@@ -607,8 +868,8 @@
                     <button 
                         type="button"
                         @click="activeTab = 'specs'" 
-                        :class="activeTab === 'specs' ? 'border-sky-600 text-sky-600 font-black' : 'border-transparent text-slate-500 hover:text-slate-800 font-bold'" 
-                        class="pb-2 border-b-2 text-sm transition cursor-pointer whitespace-nowrap"
+                        :class="activeTab === 'specs' ? 'bg-sky-50 sm:bg-transparent text-sky-600 sm:border-sky-600 font-black' : 'text-slate-500 hover:text-slate-800 sm:border-transparent font-bold'" 
+                        class="px-3 py-1.5 sm:px-0 sm:py-0 rounded-xl sm:rounded-none sm:pb-2 sm:border-b-2 text-xs sm:text-sm transition cursor-pointer whitespace-nowrap"
                     >
                         {{ $isAr ? 'المواصفات والخصائص' : 'Fiche Technique & Spécifications' }}
                     </button>
@@ -617,8 +878,8 @@
                 <button 
                     type="button"
                     @click="activeTab = 'reviews'" 
-                    :class="activeTab === 'reviews' ? 'border-sky-600 text-sky-600 font-black' : 'border-transparent text-slate-500 hover:text-slate-800 font-bold'" 
-                    class="pb-2 border-b-2 text-sm transition cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                    :class="activeTab === 'reviews' ? 'bg-sky-50 sm:bg-transparent text-sky-600 sm:border-sky-600 font-black' : 'text-slate-500 hover:text-slate-800 sm:border-transparent font-bold'" 
+                    class="px-3 py-1.5 sm:px-0 sm:py-0 rounded-xl sm:rounded-none sm:pb-2 sm:border-b-2 text-xs sm:text-sm transition cursor-pointer whitespace-nowrap flex items-center gap-1.5"
                 >
                     <span>{{ $isAr ? 'التقييمات والآراء' : 'Avis Clients' }}</span>
                     <span class="px-2 py-0.5 rounded-full text-[10px] bg-sky-100 text-sky-800 font-extrabold">{{ $product->reviews_count }}</span>
@@ -628,8 +889,8 @@
                     <button 
                         type="button"
                         @click="activeTab = 'vendor'" 
-                        :class="activeTab === 'vendor' ? 'border-sky-600 text-sky-600 font-black' : 'border-transparent text-slate-500 hover:text-slate-800 font-bold'" 
-                        class="pb-2 border-b-2 text-sm transition cursor-pointer whitespace-nowrap"
+                        :class="activeTab === 'vendor' ? 'bg-sky-50 sm:bg-transparent text-sky-600 sm:border-sky-600 font-black' : 'text-slate-500 hover:text-slate-800 sm:border-transparent font-bold'" 
+                        class="px-3 py-1.5 sm:px-0 sm:py-0 rounded-xl sm:rounded-none sm:pb-2 sm:border-b-2 text-xs sm:text-sm transition cursor-pointer whitespace-nowrap"
                     >
                         {{ $isAr ? 'عن البائع والشحن' : 'À propos du Vendeur' }}
                     </button>
@@ -637,9 +898,20 @@
             </div>
 
             <!-- Tab 1: Description -->
-            <div x-show="activeTab === 'description'" class="pt-6 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-4">
+            <div x-show="activeTab === 'description'" class="pt-6 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-3 prose prose-slate max-w-none [&_ul]:list-disc [&_ul]:ps-5 [&_ul]:my-2 [&_ul]:space-y-1.5 [&_ol]:list-decimal [&_ol]:ps-5 [&_ol]:my-2 [&_ol]:space-y-1.5 [&_li]:leading-relaxed [&_li>p]:inline [&_p]:mb-2 [&_strong]:text-slate-900 [&_strong]:font-bold">
                 @if($product->description)
-                    {!! nl2br(e($product->description)) !!}
+                    @php
+                        $desc = $product->description;
+                        if (str_contains($desc, '&lt;') && !str_contains($desc, '<')) {
+                            $desc = html_entity_decode($desc, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                        }
+                        $hasHtml = strip_tags($desc) !== $desc;
+                    @endphp
+                    @if($hasHtml)
+                        {!! strip_tags($desc, '<p><br><b><strong><i><em><u><ul><ol><li><span><div><h1><h2><h3><h4><h5><h6><table><thead><tbody><tr><th><td><hr><a>') !!}
+                    @else
+                        {!! nl2br(e($desc)) !!}
+                    @endif
                 @else
                     <p class="text-slate-400 italic">
                         {{ $isAr ? 'لا يوجد وصف مفصل لهذا المنتج حالياً.' : 'Aucune description détaillée n\'est renseignée pour cet article.' }}
@@ -648,10 +920,20 @@
             </div>
 
             <!-- Tab 2: Specifications -->
-            @if(!empty($product->specifications))
+            @php
+                $rawSpecs = $product->specifications;
+                if (is_string($rawSpecs)) {
+                    $specsArray = json_decode($rawSpecs, true) ?: [];
+                } elseif (is_array($rawSpecs)) {
+                    $specsArray = $rawSpecs;
+                } else {
+                    $specsArray = [];
+                }
+            @endphp
+            @if(!empty($specsArray))
                 <div x-show="activeTab === 'specs'" x-cloak class="pt-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        @foreach((array)$product->specifications as $key => $val)
+                        @foreach($specsArray as $key => $val)
                             <div class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70">
                                 <span class="font-bold text-slate-600">{{ $key }}</span>
                                 <span class="text-slate-900 font-semibold">{{ is_array($val) ? implode(', ', $val) : $val }}</span>
@@ -870,7 +1152,7 @@
                         <div class="flex items-center gap-3.5">
                             <div class="w-14 h-14 rounded-2xl bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
                                 @if($product->vendor->logo)
-                                    <img src="{{ asset('uploads/' . $product->vendor->logo) }}" alt="{{ $product->vendor->shop_name }}" class="w-full h-full object-contain rounded-xl">
+                                    <img src="{{ (str_starts_with($product->vendor->logo, 'http://') || str_starts_with($product->vendor->logo, 'https://')) ? $product->vendor->logo : asset('uploads/' . $product->vendor->logo) }}" alt="{{ $product->vendor->shop_name }}" class="w-full h-full object-contain rounded-xl">
                                 @else
                                     <span class="font-black text-xl text-sky-600">{{ strtoupper(substr($product->vendor->shop_name, 0, 1)) }}</span>
                                 @endif
@@ -882,7 +1164,7 @@
                                 </p>
                             </div>
                         </div>
-                        <a href="{{ route('blade.vendors.show', $product->vendor->slug) }}" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap">
+                        <a href="{{ route('vendors.show', $product->vendor->slug) }}" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap">
                             {{ __('messages.visit_shop') }} {!! $isAr ? '&larr;' : '&rarr;' !!}
                         </a>
                     </div>
@@ -899,7 +1181,7 @@
                     <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                         {{ __('messages.related_products') }}
                     </h2>
-                    <a href="{{ route('blade.products.index') }}" class="text-xs font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1">
+                    <a href="{{ route('products.index') }}" class="text-xs font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1">
                         <span>{{ __('messages.view_all') }}</span>
                         <span>{!! $isAr ? '&larr;' : '&rarr;' !!}</span>
                     </a>
@@ -915,22 +1197,41 @@
         <!-- ============================================== -->
         <!-- STICKY MOBILE FLOATING DIRECT ORDER BAR        -->
         <!-- ============================================== -->
-        <div class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-2xl flex items-center justify-between gap-3">
-            <div>
-                <span class="text-[10px] text-slate-400 block font-bold uppercase">{{ __('messages.total') }}</span>
-                <span class="text-base font-black text-emerald-600" x-text="((unitPrice * qty) + shippingPrice).toFixed(2) + ' {{ $currency }}'">
-                    {{ number_format($unitPrice + $vendorShipping, 2) }} {{ $currency }}
+        <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-3 py-2 shadow-2xl flex items-center justify-between gap-2.5">
+            <!-- Home Shortcut -->
+            <a href="{{ route('home') }}" class="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-sky-600 hover:bg-slate-50 transition shrink-0" title="{{ __('messages.home') }}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+            </a>
+
+            <!-- Cart Shortcut -->
+            <a href="{{ route('cart.index') }}" class="relative p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-sky-600 hover:bg-slate-50 transition shrink-0" title="{{ __('messages.cart') }}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                </svg>
+                <span class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-rose-500 to-red-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white shadow-xs">
+                    {{ $cartCount ?? 0 }}
                 </span>
-            </div>
+            </a>
+
+            <!-- Total Price & Direct Order CTA -->
             <button 
                 type="button" 
                 @click="document.getElementById('form-commande-directe').scrollIntoView({ behavior: 'smooth' }); setTimeout(() => document.getElementById('direct_order_name')?.focus(), 350);"
-                class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                class="flex-1 py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wide shadow-md active:scale-95 flex items-center justify-between gap-2 cursor-pointer"
             >
-                <span>⚡ {{ __('messages.confirm_direct_order') }}</span>
-                <span>&darr;</span>
+                <span class="flex items-center gap-1.5 truncate">
+                    <span>⚡</span>
+                    <span>{{ __('messages.confirm_direct_order') }}</span>
+                </span>
+                <span class="text-white font-black text-xs bg-black/20 px-2 py-0.5 rounded-lg shrink-0" x-text="((unitPrice * qty) + shippingPrice).toFixed(2) + ' {{ $currency }}'">
+                    {{ number_format($unitPrice + $vendorShipping, 2) }} {{ $currency }}
+                </span>
             </button>
+        </div>
     </div>
+</div>
 
 @push('scripts')
 <script>
@@ -967,16 +1268,47 @@ function toggleProductWishlist(productId) {
                 if (text) text.textContent = "{{ $isAr ? 'حفظ' : 'Ajouter aux favoris' }}";
             }
 
-            // Update header count if element exists
+            // Update header and mobile navbar counts if elements exist
             const headerCount = document.getElementById('header-wishlist-count');
             if (headerCount) {
                 headerCount.textContent = data.count;
-                headerCount.classList.remove('hidden');
+                if (data.count > 0) {
+                    headerCount.classList.remove('hidden');
+                } else {
+                    headerCount.classList.add('hidden');
+                }
+            }
+            const mobCount = document.getElementById('mobile-navbar-wishlist-count');
+            if (mobCount) {
+                mobCount.textContent = data.count;
+                if (data.count > 0) {
+                    mobCount.classList.remove('hidden');
+                } else {
+                    mobCount.classList.add('hidden');
+                }
             }
         }
     })
     .catch(err => console.error(err));
 }
+
+// Track recently viewed products in localStorage for homepage recommendations
+try {
+    let recent = JSON.parse(localStorage.getItem('aquawa_recent_products') || '[]');
+    const currentProd = {
+        id: {{ $product->id }},
+        name: @json($product->name),
+        slug: @json($product->slug),
+        image: @json($product->image_url),
+        price: '{{ number_format($product->current_price, 2) }}',
+        currency: '{{ $isAr ? 'د.ت' : 'DT' }}',
+        url: '{{ route('products.show', $product->slug) }}'
+    };
+    recent = recent.filter(p => p.id !== currentProd.id);
+    recent.unshift(currentProd);
+    if (recent.length > 8) recent = recent.slice(0, 8);
+    localStorage.setItem('aquawa_recent_products', JSON.stringify(recent));
+} catch (e) {}
 </script>
 @endpush
 

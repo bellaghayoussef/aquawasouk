@@ -14,6 +14,7 @@ class Category extends Model
         'parent_id',
         'name',
         'slug',
+        'ecomness_category',
         'description',
         'image',
         'is_active',
@@ -22,6 +23,27 @@ class Category extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    protected $appends = [
+        'image_url',
+    ];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if (empty($this->image)) {
+            return null;
+        }
+
+        if (Str::startsWith($this->image, ['http://', 'https://'])) {
+            return $this->image;
+        }
+
+        if (Str::startsWith($this->image, 'uploads/')) {
+            return asset($this->image);
+        }
+
+        return asset('uploads/' . ltrim($this->image, '/'));
+    }
 
     protected static function boot()
     {

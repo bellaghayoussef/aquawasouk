@@ -21,6 +21,10 @@ class Product extends Model
         'discount_price',
         'stock',
         'sku',
+        'ecomness_code',
+        'ecomness_min_price',
+        'ecomness_category',
+        'ecomness_raw_data',
         'is_featured',
         'status',
         'views',
@@ -28,9 +32,11 @@ class Product extends Model
 
     protected $casts = [
         'specifications' => 'array',
+        'ecomness_raw_data' => 'array',
         'is_featured' => 'boolean',
         'price' => 'decimal:2',
         'discount_price' => 'decimal:2',
+        'ecomness_min_price' => 'decimal:2',
     ];
 
     protected static function boot()

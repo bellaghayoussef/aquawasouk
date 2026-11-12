@@ -21,6 +21,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
         'role',
         'photo',
@@ -101,7 +102,7 @@ class User extends Authenticatable
     // Helper methods
     public function isVendor()
     {
-        return $this->role === 'vendor';
+        return $this->role === 'vendor' || $this->vendor()->exists();
     }
 
     public function isAdmin()

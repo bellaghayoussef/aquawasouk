@@ -47,47 +47,91 @@ class BladeTestController extends Controller
     public function home()
     {
         $banners = Banner::where('is_active', true)
-            ->where('page', 'home')
+            ->where(function ($q) {
+                $q->where('page', 'home')->orWhereNull('page');
+            })
             ->orderBy('sort_order', 'asc')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $featuredProducts = Product::with(['vendor', 'category', 'primaryImage'])
+        $baseProductQuery = Product::with(['vendor', 'category', 'primaryImage'])
             ->whereHas('vendor', function ($q) {
                 $q->active();
             })
-            ->active()
+            ->active();
+
+        // 1. Featured Products
+        $featuredProducts = (clone $baseProductQuery)
+            ->featured()
             ->latest()
             ->take(8)
             ->get();
 
-        // Dynamic Hero Spotlight Products (discounted or top featured)
-        $heroProducts = Product::with(['vendor', 'category', 'primaryImage'])
-            ->whereHas('vendor', function ($q) {
-                $q->active();
-            })
-            ->active()
+        // 2. Flash Sale / Promotions du moment (Real discounted products)
+        $flashProducts = (clone $baseProductQuery)
             ->whereNotNull('discount_price')
             ->whereColumn('discount_price', '<', 'price')
             ->latest()
-            ->take(4)
+            ->take(8)
             ->get();
 
+        // 3. Dynamic Hero Spotlight Products
+        $heroProducts = $flashProducts->take(4);
         if ($heroProducts->isEmpty()) {
             $heroProducts = $featuredProducts->take(4);
         }
 
-        $categories = Category::where('parent_id', null)->take(12)->get();
+        // 4. Best Sellers (Most viewed / ordered)
+        $bestSellers = (clone $baseProductQuery)
+            ->orderBy('views', 'desc')
+            ->take(8)
+            ->get();
 
+        // 5. New Arrivals (Latest added products)
+        $newArrivals = (clone $baseProductQuery)
+            ->latest()
+            ->take(8)
+            ->get();
+
+        // 6. Trending Products (Featured or high view count)
+        $trendingProducts = (clone $baseProductQuery)
+            ->where(function ($q) {
+                $q->where('is_featured', true)->orWhere('views', '>', 5);
+            })
+            ->inRandomOrder()
+            ->take(8)
+            ->get();
+
+        if ($trendingProducts->isEmpty()) {
+            $trendingProducts = $featuredProducts;
+        }
+
+        // 7. Categories with active product counts
+        $categories = Category::where('parent_id', null)
+            ->withCount(['products' => function ($q) {
+                $q->active();
+            }])
+            ->orderBy('products_count', 'desc')
+            ->take(12)
+            ->get();
+
+        // 8. Top Verified Vendors
         $vendors = Vendor::active()
-            ->withCount('products')
+            ->withCount(['products' => function ($q) {
+                $q->active();
+            }])
+            ->orderBy('products_count', 'desc')
             ->take(6)
             ->get();
 
         return view('blade.home', [
             'banners' => $banners,
             'featuredProducts' => $featuredProducts,
+            'flashProducts' => $flashProducts,
             'heroProducts' => $heroProducts,
+            'bestSellers' => $bestSellers,
+            'newArrivals' => $newArrivals,
+            'trendingProducts' => $trendingProducts,
             'categories' => $categories,
             'vendors' => $vendors,
             'navCategories' => $this->getNavCategories(),
@@ -118,7 +162,7 @@ class BladeTestController extends Controller
             $search = $request->query('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -164,10 +208,15 @@ class BladeTestController extends Controller
 
         $products = $query->paginate(12)->withQueryString();
         $categories = Category::all();
+        $banners = Banner::where('is_active', true)
+            ->where('page', 'products')
+            ->orderBy('sort_order', 'asc')
+            ->get();
 
         return view('blade.products.index', [
             'products' => $products,
             'categories' => $categories,
+            'banners' => $banners,
             'navCategories' => $this->getNavCategories(),
             'cartCount' => $this->getCartCount(),
         ]);
@@ -178,6 +227,7 @@ class BladeTestController extends Controller
      */
     public function productShow($slug)
     {
+
         $product = Product::with([
             'vendor.user',
             'category',
@@ -188,11 +238,11 @@ class BladeTestController extends Controller
                 $q->approved()->latest()->with('user');
             },
         ])
-        ->where('slug', $slug)
-        ->whereHas('vendor', function ($q) {
-            $q->active();
-        })
-        ->firstOrFail();
+            ->where('slug', $slug)
+            ->whereHas('vendor', function ($q) {
+                $q->active();
+            })
+            ->firstOrFail();
 
         // Increment views safely
         $product->increment('views');
@@ -208,19 +258,20 @@ class BladeTestController extends Controller
             ->get();
 
         $isFavorited = auth()->check() ? $product->isFavoritedBy(auth()->user()) : false;
-        
+
         $hasPurchased = false;
         if (auth()->check()) {
             $hasPurchased = \App\Models\Order::where('user_id', auth()->id())
                 ->where(function ($q) {
                     $q->where('status', 'delivered')
-                      ->orWhere('payment_status', 'paid');
+                        ->orWhere('payment_status', 'paid');
                 })
                 ->whereHas('items', function ($q) use ($product) {
                     $q->where('product_id', $product->id);
                 })
                 ->exists();
         }
+
 
         return view('blade.products.show', [
             'product' => $product,
@@ -264,13 +315,49 @@ class BladeTestController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->query('search');
-            $query->where('shop_name', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('shop_name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
         }
 
-        $vendors = $query->latest()->paginate(12)->withQueryString();
+        if ($request->filled('city')) {
+            $query->where('city', $request->query('city'));
+        }
+
+        switch ($request->query('sort')) {
+            case 'products_desc':
+                $query->orderBy('products_count', 'desc');
+                break;
+            case 'name_asc':
+                $query->orderBy('shop_name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('shop_name', 'desc');
+                break;
+            default:
+                $query->latest();
+        }
+
+        $vendors = $query->paginate(12)->withQueryString();
+
+        $cities = Vendor::active()
+            ->whereNotNull('city')
+            ->where('city', '!=', '')
+            ->distinct()
+            ->pluck('city')
+            ->sort()
+            ->values();
+
+        $banners = Banner::where('is_active', true)
+            ->where('page', 'vendors')
+            ->orderBy('sort_order', 'asc')
+            ->get();
 
         return view('blade.vendors.index', [
             'vendors' => $vendors,
+            'cities' => $cities,
+            'banners' => $banners,
             'navCategories' => $this->getNavCategories(),
             'cartCount' => $this->getCartCount(),
         ]);
@@ -291,7 +378,7 @@ class BladeTestController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 

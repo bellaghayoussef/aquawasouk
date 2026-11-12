@@ -15,6 +15,11 @@ const formatPrice = (price) => {
   currency: 'TND',
     }).format(price);
 };
+
+const getImageUrl = (path) => {
+    if (!path) return '';
+    return path.startsWith('http://') || path.startsWith('https://') ? path : '/uploads/' + path;
+};
 </script>
 
 <template>
@@ -78,7 +83,7 @@ const formatPrice = (price) => {
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center">
                                                 <div class="h-10 w-10 flex-shrink-0">
-                                                    <img v-if="product.primary_image" :src="'/uploads/' + product.primary_image.image_path" :alt="product.name" class="h-10 w-10 rounded object-cover" />
+                                                    <img v-if="product.primary_image" :src="getImageUrl(product.primary_image.image_path)" :alt="product.name" class="h-10 w-10 rounded object-cover" />
                                                     <div v-else class="h-10 w-10 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                                                         <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>

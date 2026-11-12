@@ -41,27 +41,32 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'] as int,
-      userId: json['user_id'] as int,
-      orderNumber: json['order_number'] as String,
-      totalAmount: double.parse(json['total_amount'].toString()),
-      status: json['status'] as String,
-      paymentStatus: json['payment_status'] as String,
-      paymentMethod: json['payment_method'] as String,
-      shippingAddress: json['shipping_address'] as String,
-      shippingCity: json['shipping_city'] as String,
-      shippingPostalCode: json['shipping_postal_code'] as String,
-      shippingCountry: json['shipping_country'] as String,
-      phone: json['phone'] as String,
-      notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['created_at']),
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      userId: int.tryParse(json['user_id']?.toString() ?? '0') ?? 0,
+      orderNumber: json['order_number']?.toString() ?? '#${json['id']}',
+      totalAmount:
+          double.tryParse(json['total_amount']?.toString() ?? '0') ?? 0.0,
+      status: json['status']?.toString() ?? 'pending',
+      paymentStatus: json['payment_status']?.toString() ?? 'pending',
+      paymentMethod: json['payment_method']?.toString() ?? 'cod',
+      shippingAddress: json['shipping_address']?.toString() ?? '',
+      shippingCity: json['shipping_city']?.toString() ?? '',
+      shippingPostalCode: json['shipping_postal_code']?.toString() ?? '',
+      shippingCountry: json['shipping_country']?.toString() ?? 'Tunisie',
+      phone: json['phone']?.toString() ?? '',
+      notes: json['notes']?.toString(),
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+          : DateTime.now(),
       items: json['items'] != null
           ? (json['items'] as List)
-              .map((item) => OrderItem.fromJson(item))
+              .map((item) => OrderItem.fromJson(item as Map<String, dynamic>))
               .toList()
           : null,
-      customerName: json['user'] != null ? json['user']['name'] : null,
-      customerEmail: json['user'] != null ? json['user']['email'] : null,
+      customerName: json['customer_name'] ??
+          (json['user'] != null ? json['user']['name'] : null),
+      customerEmail: json['customer_email'] ??
+          (json['user'] != null ? json['user']['email'] : null),
     );
   }
 
@@ -116,15 +121,15 @@ class OrderItem {
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
-      id: json['id'] as int,
-      orderId: json['order_id'] as int,
-      productId: json['product_id'] as int,
-      vendorId: json['vendor_id'] as int,
-      quantity: json['quantity'] as int,
-      price: double.parse(json['price'].toString()),
-      color: json['color'] as String?,
-      size: json['size'] as String?,
-      status: json['status'] as String,
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      orderId: int.tryParse(json['order_id']?.toString() ?? '0') ?? 0,
+      productId: int.tryParse(json['product_id']?.toString() ?? '0') ?? 0,
+      vendorId: int.tryParse(json['vendor_id']?.toString() ?? '0') ?? 0,
+      quantity: int.tryParse(json['quantity']?.toString() ?? '1') ?? 1,
+      price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
+      color: json['color']?.toString(),
+      size: json['size']?.toString(),
+      status: json['status']?.toString() ?? 'pending',
       product:
           json['product'] != null ? Product.fromJson(json['product']) : null,
       vendor: json['vendor'] != null ? Vendor.fromJson(json['vendor']) : null,

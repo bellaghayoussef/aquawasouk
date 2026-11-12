@@ -15,23 +15,86 @@ use Inertia\Inertia;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $orders = auth()->user()
-            ->orders()
-            ->with('items.product')
-            ->latest()
-            ->paginate(10);
+        $user = auth()->user();
+
+        // Scope query according to user role
+        if ($user->isAdmin()) {
+            $query = Order::query();
+        } elseif ($user->isVendor() && $user->vendor) {
+            $vendorId = $user->vendor->id;
+            $query = Order::whereHas('items', function ($q) use ($vendorId) {
+                $q->where('vendor_id', $vendorId);
+            });
+        } else {
+            $query = $user->orders();
+        }
+
+        $query->with([
+            'user:id,name,email',
+            'items.product.primaryImage',
+            'items.product.vendor:id,user_id,shop_name',
+            'items.vendor:id,user_id,shop_name',
+        ]);
+
+        // Search filter: order number, customer name/email, phone, city
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('shipping_city', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($uq) use ($search) {
+                      $uq->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Status filter
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Payment status filter
+        if ($request->filled('payment_status') && $request->payment_status !== 'all') {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        // Date range filter
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Per page: if kanban view is requested, fetch a larger batch for smooth board experience
+        $view = $request->get('view', 'table');
+        $perPage = $view === 'kanban' ? 100 : 15;
+        if ($request->filled('per_page')) {
+            $perPage = max(5, min(200, (int) $request->per_page));
+        }
+
+        $orders = $query->latest()->paginate($perPage)->withQueryString();
 
         return Inertia::render('Orders/Index', [
             'orders' => $orders,
+            'filters' => $request->only(['search', 'status', 'payment_status', 'date_from', 'date_to', 'view', 'per_page']),
+            'canManageOrders' => $user->isAdmin() || $user->isVendor(),
+            'userRole' => $user->role,
         ]);
     }
 
     public function show(Order $order)
     {
-        // Make sure user owns this order
-        if ($order->user_id !== auth()->id()) {
+        $user = auth()->user();
+        $isOwner = $order->user_id === $user->id;
+        $isAdmin = $user->isAdmin();
+        $isVendorWithItem = $user->isVendor() && $user->vendor && $order->items()->where('vendor_id', $user->vendor->id)->exists();
+
+        if (!$isOwner && !$isAdmin && !$isVendorWithItem) {
             abort(403);
         }
 
@@ -40,6 +103,109 @@ class OrderController extends Controller
         return Inertia::render('Orders/Show', [
             'order' => $order,
         ]);
+    }
+
+    public function updateStatus(Request $request, Order $order)
+    {
+        $user = auth()->user();
+
+        // Authorization check
+        $canUpdate = false;
+        if ($user->isAdmin()) {
+            $canUpdate = true;
+        } elseif ($user->isVendor() && $user->vendor) {
+            $canUpdate = $order->items()->where('vendor_id', $user->vendor->id)->exists();
+        } elseif ($order->user_id === $user->id) {
+            // Customer can only cancel a pending order
+            if ($request->status === 'cancelled' && $order->status === 'pending') {
+                $canUpdate = true;
+            }
+        }
+
+        if (!$canUpdate) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Action non autorisée sur cette commande.',
+                ], 403);
+            }
+            abort(403, 'Action non autorisée sur cette commande.');
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:pending,processing,shipped,delivered,cancelled',
+        ]);
+
+        $oldStatus = $order->status;
+        $newStatus = $validated['status'];
+
+        // Business rules check
+        if ($oldStatus === 'delivered' && $newStatus !== 'delivered' && !$user->isAdmin()) {
+            $msg = 'Une commande déjà livrée ne peut pas être rétrogradée.';
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->with('error', $msg);
+        }
+
+        if ($oldStatus === 'cancelled' && $newStatus !== 'cancelled' && !$user->isAdmin()) {
+            $msg = 'Seul un administrateur peut réactiver une commande annulée.';
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->with('error', $msg);
+        }
+
+        DB::transaction(function () use ($order, $newStatus, $user) {
+            $order->status = $newStatus;
+            if ($newStatus === 'delivered' && $order->payment_method === 'cod') {
+                $order->payment_status = 'paid';
+            }
+            $order->save();
+
+            // Sync item statuses if admin or vendor owns them
+            if ($user->isAdmin()) {
+                $order->items()->update(['status' => $newStatus]);
+            } elseif ($user->isVendor() && $user->vendor) {
+                $order->items()->where('vendor_id', $user->vendor->id)->update(['status' => $newStatus]);
+            }
+        });
+
+        // Trigger notification email if status changed and user exists
+        if ($oldStatus !== $newStatus && $order->user) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($order->user->email)
+                    ->send(new \App\Mail\OrderStatusUpdated($order));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Email dispatch failed: ' . $e->getMessage());
+            }
+        }
+
+        $statusLabels = [
+            'pending' => 'En attente',
+            'processing' => 'En préparation',
+            'shipped' => 'En cours d\'expédition',
+            'delivered' => 'Livrée',
+            'cancelled' => 'Annulée',
+        ];
+
+        $statusLabel = $statusLabels[$newStatus] ?? $newStatus;
+        $message = "Commande #{$order->order_number} passée en statut « {$statusLabel} ».";
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'order' => $order->fresh([
+                    'user:id,name,email',
+                    'items.product.primaryImage',
+                    'items.product.vendor:id,user_id,shop_name',
+                    'items.vendor:id,user_id,shop_name',
+                ]),
+            ]);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function checkout($vendorId)
@@ -211,6 +377,31 @@ class OrderController extends Controller
              \Illuminate\Support\Facades\Log::error('Failed to send admin email: ' . $e->getMessage());
         }
 
+        // Send SMS alert for new order to 56818880
+        try {
+            $smsService = app(\App\Services\SmsService::class);
+            $customerName = auth()->user()->name ?? 'Client';
+            $smsMessage = "AquawaSouk: Nouvelle commande #" . $order->order_number . "\n"
+                . "Client: " . $customerName . " (" . $request->phone . ")\n"
+                . "Articles: " . $vendorItems->count() . " article(s)\n"
+                . "Total: " . number_format($total, 2) . " DT\n"
+                . "Ville: " . $request->shipping_city;
+
+            $smsService->send('56818880', trim($smsMessage));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send cart order SMS alert to 56818880: ' . $e->getMessage());
+        }
+
+        // Auto-forward order to Ecomness if it contains Ecomness products
+        try {
+            $ecomnessService = app(\App\Services\EcomnessService::class);
+            if ($ecomnessService->hasApiKey()) {
+                $ecomnessService->forwardOrderToEcomness($order);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Ecomness auto-forward failed for order #' . $order->order_number . ': ' . $e->getMessage());
+        }
+
         return redirect()->route('orders.show', $order)->with('success', 'Order placed successfully!');
     }
 
@@ -230,11 +421,20 @@ class OrderController extends Controller
             'shipping_postal_code' => 'nullable|string|max:20',
             'notes' => 'nullable|string|max:1000',
             'payment_method' => 'nullable|string|in:cod',
+            'color' => 'nullable|string|max:100',
+            'size' => 'nullable|string|max:50',
+            'variation_id' => 'nullable|exists:product_variations,id',
         ]);
 
-        $product = Product::with('vendor.user')->findOrFail($request->product_id);
+        $product = Product::with(['vendor.user', 'variations'])->findOrFail($request->product_id);
 
-        if ($product->stock < $request->quantity) {
+        $variation = null;
+        if ($request->filled('variation_id')) {
+            $variation = $product->variations()->find($request->variation_id);
+        }
+
+        $stockToCheck = $variation ? $variation->stock : $product->stock;
+        if ($stockToCheck < $request->quantity) {
             return back()->withErrors(['quantity' => __('low_stock')]);
         }
 
@@ -258,7 +458,10 @@ class OrderController extends Controller
             Auth::login($user);
         }
 
-        $unitPrice = $product->discount_price > 0 ? (float) $product->discount_price : (float) $product->price;
+        $unitPrice = ($variation && $variation->price > 0)
+            ? (float) $variation->price
+            : ($product->discount_price > 0 ? (float) $product->discount_price : (float) $product->price);
+
         $vendor = $product->vendor;
         $shippingCost = $vendor && $vendor->shipping_price ? (float) $vendor->shipping_price : 0;
         $subtotal = $unitPrice * (int) $request->quantity;
@@ -267,7 +470,7 @@ class OrderController extends Controller
         $paymentMethod = $request->input('payment_method', 'cod');
 
         // Create Order and items within atomic database transaction
-        $order = DB::transaction(function () use ($request, $user, $total, $shippingCost, $vendor, $subtotal, $product, $unitPrice, $paymentMethod) {
+        $order = DB::transaction(function () use ($request, $user, $total, $shippingCost, $vendor, $subtotal, $product, $unitPrice, $paymentMethod, $variation) {
             $order = Order::create([
                 'order_number' => 'ORD-' . strtoupper(Str::random(10)),
                 'user_id' => $user->id,
@@ -291,6 +494,9 @@ class OrderController extends Controller
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'vendor_id' => $product->vendor_id,
+                'variation_id' => $variation ? $variation->id : null,
+                'color' => $request->color ?: ($variation ? $variation->color : null),
+                'size' => $request->size ?: ($variation ? $variation->size : null),
                 'quantity' => (int) $request->quantity,
                 'price' => $unitPrice,
                 'commission' => $commission,
@@ -299,6 +505,11 @@ class OrderController extends Controller
 
             // Decrement product stock
             $product->decrement('stock', (int) $request->quantity);
+
+            // Also decrement variation stock if applicable
+            if ($variation) {
+                $variation->decrement('stock', (int) $request->quantity);
+            }
 
             return $order;
         });
@@ -317,6 +528,37 @@ class OrderController extends Controller
             \Illuminate\Support\Facades\Mail::to('contact@aquawasouk.com')->send(new \App\Mail\OrderPlaced($order));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to send admin email: ' . $e->getMessage());
+        }
+
+        // Send SMS alert for new direct order to 56818880
+        try {
+            $smsService = app(\App\Services\SmsService::class);
+            $productVariant = '';
+            if ($variation && !empty($variation->name)) {
+                $productVariant = ' (' . $variation->name . ')';
+            } elseif ($request->filled('color') || $request->filled('size')) {
+                $productVariant = ' (' . trim(($request->color ?? '') . ' ' . ($request->size ?? '')) . ')';
+            }
+
+            $smsMessage = "AquawaSouk: Nouvelle commande directe #" . $order->order_number . "\n"
+                . "Client: " . $request->customer_name . " (" . $request->phone . ")\n"
+                . "Produit: " . $product->name . $productVariant . " x" . $request->quantity . "\n"
+                . "Total: " . number_format($total, 2) . " DT\n"
+                . "Ville: " . $request->shipping_city;
+
+            $smsService->send('56818880', trim($smsMessage));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send direct order SMS alert to 56818880: ' . $e->getMessage());
+        }
+
+        // Auto-forward order to Ecomness if it contains Ecomness products
+        try {
+            $ecomnessService = app(\App\Services\EcomnessService::class);
+            if ($ecomnessService->hasApiKey()) {
+                $ecomnessService->forwardOrderToEcomness($order);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Ecomness auto-forward failed for direct order #' . $order->order_number . ': ' . $e->getMessage());
         }
 
         return redirect()->route('orders.show', $order)->with('success', 'Votre commande a été passée avec succès ! Notre équipe ou le vendeur vous contactera pour confirmer la livraison.');

@@ -48,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -73,9 +73,9 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 8),
 
               Text(
-                'Your Aquatic Marketplace',
+                'Le Marché Tunisien en Ligne',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
               ),
               const SizedBox(height: 48),

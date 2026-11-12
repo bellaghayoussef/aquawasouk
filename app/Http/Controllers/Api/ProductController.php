@@ -14,7 +14,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['vendor', 'category', 'images', 'primaryImage'])
+        $query = Product::with(['vendor', 'category', 'images', 'primaryImage', 'variations'])
             ->active();
 
         // Search
@@ -85,12 +85,18 @@ class ProductController extends Controller
             'vendor',
             'category',
             'images',
+            'primaryImage',
             'variations',
             'reviews.user',
             'reviews' => function ($query) {
                 $query->approved()->latest();
             }
-        ])->where('slug', $slug)->firstOrFail();
+        ])->where(function ($q) use ($slug) {
+            $q->where('slug', $slug);
+            if (is_numeric($slug)) {
+                $q->orWhere('id', (int) $slug);
+            }
+        })->firstOrFail();
 
         // Increment views
         $product->increment('views');
@@ -116,7 +122,7 @@ class ProductController extends Controller
     {
         // 1-Hour Cached Featured Products for Mobile App (Auto-cleared on update/delete)
         $products = MarketplaceCacheService::remember('api_featured_products', function () {
-            return Product::with(['vendor', 'category', 'images', 'primaryImage'])
+            return Product::with(['vendor', 'category', 'images', 'primaryImage', 'variations'])
                 ->where('is_featured', true)
                 ->limit(10)
                 ->get();
@@ -137,7 +143,7 @@ class ProductController extends Controller
             'q' => 'required|string|min:2',
         ]);
 
-        $products = Product::with(['vendor', 'category', 'images', 'primaryImage'])
+        $products = Product::with(['vendor', 'category', 'images', 'primaryImage', 'variations'])
             ->active()
             ->where(function ($query) use ($request) {
                 $query->where('name', 'like', "%{$request->q}%")

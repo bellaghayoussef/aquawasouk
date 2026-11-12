@@ -35,18 +35,20 @@ class VendorController extends Controller
         $totalOrders = $vendor->orderItems()->count();
         $pendingOrders = $vendor->orderItems()->where('status', 'pending')->count();
         
-        $totalRevenue = $vendor->orderItems()
-            ->whereHas('order', function ($q) {
-                $q->where('payment_status', 'paid');
-            })
-            ->sum('price');
+        $totalRevenue = $vendor->getTotalSales();
+        if ($totalRevenue <= 0) {
+            $totalRevenue = (float) ($vendor->orderItems()
+                ->where('status', '!=', 'cancelled')
+                ->selectRaw('SUM(price * quantity) as total')
+                ->value('total') ?? 0.00);
+        }
 
-        $monthlyRevenue = $vendor->orderItems()
-            ->whereHas('order', function ($q) {
-                $q->where('payment_status', 'paid')
-                  ->whereMonth('created_at', now()->month);
-            })
-            ->sum('price');
+        $monthlyRevenue = (float) ($vendor->orderItems()
+            ->where('status', '!=', 'cancelled')
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->selectRaw('SUM(price * quantity) as total')
+            ->value('total') ?? 0.00);
 
         return response()->json([
             'success' => true,
@@ -57,8 +59,9 @@ class VendorController extends Controller
                     'active_products' => $activeProducts,
                     'total_orders' => $totalOrders,
                     'pending_orders' => $pendingOrders,
-                    'total_revenue' => $totalRevenue,
-                    'monthly_revenue' => $monthlyRevenue,
+                    'total_revenue' => round($totalRevenue, 2),
+                    'total_sales' => round($totalRevenue, 2),
+                    'monthly_revenue' => round($monthlyRevenue, 2),
                 ],
             ],
         ]);
@@ -252,8 +255,11 @@ class VendorController extends Controller
     public function products(Request $request)
     {
         $vendor = $request->user()->vendor;
+        if (!$vendor) {
+            return response()->json(['success' => false, 'message' => 'Vendor profile not found'], 404);
+        }
 
-        $query = Product::with(['category', 'images'])
+        $query = Product::with(['category', 'images', 'primaryImage', 'variations'])
             ->where('vendor_id', $vendor->id);
 
         // Filter by status
@@ -359,7 +365,7 @@ $pr->category_id = (int) $pr->category_id;
             ], 403);
         }
 
-        $product->load(['category', 'images', 'reviews']);
+        $product->load(['category', 'images', 'primaryImage', 'variations', 'reviews']);
 
         return response()->json([
             'success' => true,
@@ -568,8 +574,11 @@ $pr->category_id = (int) $pr->category_id;
     public function orders(Request $request)
     {
         $vendor = $request->user()->vendor;
+        if (!$vendor) {
+            return response()->json(['success' => false, 'message' => 'Vendor profile not found'], 404);
+        }
 
-        $query = OrderItem::with(['product', 'order.user'])
+        $query = OrderItem::with(['product.primaryImage', 'product.images', 'order.user'])
             ->where('vendor_id', $vendor->id);
 
         // Filter by status
@@ -598,7 +607,7 @@ $pr->category_id = (int) $pr->category_id;
             ], 403);
         }
 
-        $orderItem->load(['product', 'order.user', 'order.items']);
+        $orderItem->load(['product.primaryImage', 'product.images', 'order.user', 'order.items.product.primaryImage']);
 
         return response()->json([
             'success' => true,
@@ -787,9 +796,13 @@ $pr->category_id = (int) $pr->category_id;
     public function recentOrders(Request $request)
     {
         $vendor = $request->user()->vendor;
+        if (!$vendor) {
+            return response()->json(['success' => false, 'message' => 'Vendor profile not found'], 404);
+        }
+
         $limit = $request->get('limit', 10);
 
-        $recentOrders = OrderItem::with(['product', 'order.user'])
+        $recentOrders = OrderItem::with(['product.primaryImage', 'product.images', 'order.user'])
             ->where('vendor_id', $vendor->id)
             ->latest()
             ->limit($limit)

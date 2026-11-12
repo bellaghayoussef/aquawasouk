@@ -14,6 +14,8 @@ class ProductVariation extends Model
         'color',
         'size',
         'sku',
+        'ecomness_code',
+        'ecomness_min_price',
         'price',
         'stock',
         'status',
@@ -21,6 +23,7 @@ class ProductVariation extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'ecomness_min_price' => 'decimal:2',
         'stock' => 'integer',
     ];
 

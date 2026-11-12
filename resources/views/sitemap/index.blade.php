@@ -61,7 +61,7 @@
         @if($product->images && $product->images->count() > 0)
             @foreach($product->images->take(5) as $image)
             <image:image>
-                <image:loc>{{ asset('uploads/' . $image->image_path) }}</image:loc>
+                <image:loc>{{ (str_starts_with($image->image_path, 'http://') || str_starts_with($image->image_path, 'https://')) ? $image->image_path : asset('uploads/' . ltrim(preg_replace('#^/?uploads/#', '', $image->image_path), '/')) }}</image:loc>
                 <image:title>{{ $product->name }}</image:title>
                 <image:caption>{{ $product->name }} - Aquawasouk</image:caption>
             </image:image>

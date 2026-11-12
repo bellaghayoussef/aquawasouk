@@ -75,6 +75,8 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $user->load(['vendor', 'cart.items.product']);
+
         return response()->json([
             'success' => true,
             'data' => [

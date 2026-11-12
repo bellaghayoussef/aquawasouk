@@ -309,7 +309,7 @@ class _VendorSettingsScreenState extends State<VendorSettingsScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.edit, size: 20),

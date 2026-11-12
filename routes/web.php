@@ -54,8 +54,9 @@ Route::get('/auth/google/callback', [GoogleAuthController::class, 'handleGoogleC
 // Language switching
 Route::get('/language/{locale}', [LanguageController::class, 'switch'])->name('language.switch');
 
-// SEO
+// SEO & Feeds
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+Route::get('/google-shopping.xml', [\App\Http\Controllers\GoogleShoppingFeedController::class, 'index'])->name('google-shopping.feed');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
 // Public routes (Powered by Laravel Blade)
@@ -77,6 +78,9 @@ Route::get('/blog/{slug}', [\App\Http\Controllers\BlogController::class, 'show']
 // Products
 Route::get('/products', [BladeTestController::class, 'products'])->name('products.index');
 Route::get('/products/{slug}', [BladeTestController::class, 'productShow'])->name('products.show');
+Route::get('/product/{slug}', function (string $slug) {
+    return redirect()->route('products.show', ['slug' => $slug], 301);
+});
 
 // Vendors
 Route::get('/vendors', [BladeTestController::class, 'vendors'])->name('vendors.index');
@@ -133,6 +137,7 @@ Route::middleware('auth')->group(function () {
     // Orders
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');
     Route::get('/checkout/{vendor}', [OrderController::class, 'checkout'])->name('orders.checkout');
     Route::post('/checkout', [OrderController::class, 'store'])->name('orders.store');
 
@@ -209,7 +214,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/categories/create', [App\Http\Controllers\Admin\AdminController::class, 'createCategory'])->name('categories.create');
     Route::post('/categories', [App\Http\Controllers\Admin\AdminController::class, 'storeCategory'])->name('categories.store');
     Route::get('/categories/{category}/edit', [App\Http\Controllers\Admin\AdminController::class, 'editCategory'])->name('categories.edit');
-    Route::patch('/categories/{category}', [App\Http\Controllers\Admin\AdminController::class, 'updateCategory'])->name('categories.update');
+    Route::match(['put', 'patch', 'post'], '/categories/{category}', [App\Http\Controllers\Admin\AdminController::class, 'updateCategory'])->name('categories.update');
     Route::delete('/categories/{category}', [App\Http\Controllers\Admin\AdminController::class, 'deleteCategory'])->name('categories.destroy');
 
     // Contact Messages Management
@@ -243,6 +248,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/settings', [\App\Http\Controllers\Admin\SmsController::class, 'updateSettings'])->name('settings');
         Route::post('/test', [\App\Http\Controllers\Admin\SmsController::class, 'testConnection'])->name('test');
     });
+
+    // Ecomness DropShipping Integration
+    Route::prefix('ecomness')->name('ecomness.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\EcomnessController::class, 'index'])->name('index');
+        Route::post('/settings', [\App\Http\Controllers\Admin\EcomnessController::class, 'updateSettings'])->name('settings');
+        Route::post('/test', [\App\Http\Controllers\Admin\EcomnessController::class, 'testConnection'])->name('test');
+        Route::post('/mapping', [\App\Http\Controllers\Admin\EcomnessController::class, 'updateCategoryMapping'])->name('mapping');
+        Route::post('/sync-products', [\App\Http\Controllers\Admin\EcomnessController::class, 'syncProducts'])->name('sync-products');
+        Route::post('/forward-order/{order}', [\App\Http\Controllers\Admin\EcomnessController::class, 'forwardOrder'])->name('forward-order');
+        Route::post('/track-orders', [\App\Http\Controllers\Admin\EcomnessController::class, 'trackOrders'])->name('track-orders');
+    });
 });
 
 // Vendor Routes
@@ -267,27 +283,6 @@ Route::middleware(['auth', 'vendor'])->prefix('vendor')->name('vendor.')->group(
     // Settings
     Route::get('/settings', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'settings'])->name('settings');
     Route::match(['post', 'patch'], '/settings', [App\Http\Controllers\Vendor\VendorDashboardController::class, 'updateSettings'])->name('settings.update');
-});
-
-
-
-
-
-
-// Public Laravel Blade Pages (Demo / Testing user pages without dashboard)
-Route::prefix('testblade')->name('blade.')->group(function () {
-    Route::get('/', [BladeTestController::class, 'home'])->name('index');
-    Route::get('/home', [BladeTestController::class, 'home'])->name('home');
-    Route::get('/products', [BladeTestController::class, 'products'])->name('products.index');
-    Route::get('/products/{slug}', [BladeTestController::class, 'productShow'])->name('products.show');
-    Route::get('/cart', [BladeTestController::class, 'cart'])->name('cart');
-    Route::get('/vendors', [BladeTestController::class, 'vendors'])->name('vendors.index');
-    Route::get('/vendors/{slug}', [BladeTestController::class, 'vendorShow'])->name('vendors.show');
-    Route::get('/about', [BladeTestController::class, 'about'])->name('about');
-    Route::get('/contact', [BladeTestController::class, 'contact'])->name('contact');
-    Route::get('/become-vendor', [BladeTestController::class, 'becomeVendor'])->name('become-vendor');
-    Route::get('/privacy-policy', [BladeTestController::class, 'privacyPolicy'])->name('privacy-policy');
-    Route::get('/terms-of-service', [BladeTestController::class, 'termsOfService'])->name('terms-of-service');
 });
 
 Route::get('/feed.xml', [SitemapController::class, 'feed']);

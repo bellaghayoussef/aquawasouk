@@ -28,7 +28,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   bool _isLoadingCategories = true;
 
   final ImagePicker _picker = ImagePicker();
-  List<XFile> _selectedImages = [];
+  final List<XFile> _selectedImages = [];
 
   @override
   void initState() {
@@ -213,7 +213,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ],
                               ),
                             );
-                          }).toList(),
+                          }),
                         ],
                       ),
                     ),
@@ -234,7 +234,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                     // Category
                     DropdownButtonFormField<int>(
-                      value: _selectedCategoryId,
+                      initialValue: _selectedCategoryId,
                       decoration: const InputDecoration(
                         labelText: 'Category *',
                       ),

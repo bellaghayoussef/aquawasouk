@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/order.dart';
 import '../../services/vendor_service.dart';
 import '../../config/theme.dart';
+import '../../config/api_config.dart';
 
 class VendorOrdersScreen extends StatefulWidget {
   const VendorOrdersScreen({super.key});
@@ -275,7 +277,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '${order.customerName ?? "Unknown"}',
+                      order.customerName ?? "Unknown",
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -299,7 +301,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
             ],
 
             // Items List
-            ...items.map((item) => _buildItemRow(item)).toList(),
+            ...items.map((item) => _buildItemRow(item)),
           ],
         ),
       ),
@@ -313,21 +315,29 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Image
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Builder(
+                builder: (context) {
+                  final imageUrl = ApiConfig.getImageUrl(item.product?.image);
+                  return imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) =>
+                              const Icon(Icons.image_not_supported),
+                        )
+                      : const Icon(Icons.image, color: Colors.grey);
+                },
+              ),
             ),
-            child: item.product?.image != null
-                ? Image.network(
-                    item.product!.image!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (ctx, error, stackTrace) =>
-                        const Icon(Icons.image_not_supported),
-                  )
-                : const Icon(Icons.image, color: Colors.grey),
           ),
           const SizedBox(width: 12),
           // Info
@@ -355,7 +365,7 @@ class _VendorOrdersScreenState extends State<VendorOrdersScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(item.status).withOpacity(0.1),
+                  color: _getStatusColor(item.status).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(

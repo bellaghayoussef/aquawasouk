@@ -5,24 +5,28 @@
 
 @section('content')
 
+    @php
+        $isAr = app()->getLocale() === 'ar';
+    @endphp
+
     <!-- Breadcrumb & Header -->
     <div class="bg-white border-b border-slate-200 py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <nav class="flex items-center gap-2 text-xs text-slate-400 mb-2">
-                <a href="{{ route('blade.home') }}" class="hover:text-sky-600">Accueil</a>
-                <span>/</span>
-                <span class="text-slate-700 font-semibold">Mon Panier</span>
+                <a href="{{ route('home') }}" class="hover:text-sky-600 transition">{{ __('messages.home') }}</a>
+                <span>{!! $isAr ? '&larr;' : '&rarr;' !!}</span>
+                <span class="text-slate-700 font-semibold">{{ __('messages.shopping_cart') }}</span>
             </nav>
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                    <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Mon Panier d'Achats</h1>
+                    <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ __('messages.shopping_cart') }}</h1>
                     <p class="text-xs text-slate-500 mt-1">
-                        Les articles sont regroupés et expédiés directement par chaque boutique partenaire
+                        {{ $isAr ? 'يتم تجميع المنتجات وشحنها مباشرة من قِبل كل متجر شريك على حدة' : 'Les articles sont regroupés et expédiés directement par chaque boutique partenaire' }}
                     </p>
                 </div>
                 @if($cart && $cart->items && $cart->items->count() > 0)
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold w-fit">
-                        📦 {{ $itemsByVendor->count() }} boutique(s) dans votre panier
+                        📦 {{ $itemsByVendor->count() }} {{ $isAr ? 'متاجر في سلتك' : 'boutique(s) dans votre panier' }}
                     </span>
                 @endif
             </div>
@@ -94,7 +98,7 @@
                                             <div>
                                                 <h3 class="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
                                                     @if($item->product)
-                                                        <a href="{{ route('blade.products.show', $item->product->slug) }}" class="hover:text-sky-600 transition">
+                                                        <a href="{{ route('products.show', $item->product->slug) }}" class="hover:text-sky-600 transition">
                                                             {{ $item->product->name }}
                                                         </a>
                                                     @else
@@ -203,8 +207,9 @@
                     @endforeach
 
                     <div class="pt-2">
-                        <a href="{{ route('blade.products.index') }}" class="font-bold text-xs text-sky-600 hover:text-sky-700 flex items-center gap-1.5">
-                            &larr; Continuer mes achats sur le catalogue
+                        <a href="{{ route('products.index') }}" class="font-bold text-xs text-sky-600 hover:text-sky-700 flex items-center gap-1.5">
+                            <span>{!! $isAr ? '&rarr;' : '&larr;' !!}</span>
+                            <span>{{ $isAr ? 'متابعة التسوق في المتجر' : 'Continuer mes achats sur le catalogue' }}</span>
                         </a>
                     </div>
                 </div>
@@ -213,8 +218,8 @@
                 <div class="lg:col-span-4">
                     <div class="bg-white rounded-3xl border border-slate-200/90 p-6 shadow-sm sticky top-28 space-y-5">
                         <h2 class="text-base font-extrabold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
-                            <span>Récapitulatif Global</span>
-                            <span class="text-xs font-bold text-sky-600">{{ $cart->items->sum('quantity') }} article(s)</span>
+                            <span>{{ $isAr ? 'الملخص الإجمالي' : 'Récapitulatif Global' }}</span>
+                            <span class="text-xs font-bold text-sky-600">{{ $cart->items->sum('quantity') }} {{ __('messages.products') }}</span>
                         </h2>
 
                         @php
@@ -324,7 +329,7 @@
                     Découvrez des milliers de produits de commerçants tunisiens et commencez votre shopping en toute sérénité.
                 </p>
                 <div class="mt-6">
-                    <a href="{{ route('blade.products.index') }}" class="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-xs font-bold rounded-2xl shadow-md transition">
+                    <a href="{{ route('products.index') }}" class="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-xs font-bold rounded-2xl shadow-md transition">
                         <span>Explorer le catalogue des produits</span> &rarr;
                     </a>
                 </div>

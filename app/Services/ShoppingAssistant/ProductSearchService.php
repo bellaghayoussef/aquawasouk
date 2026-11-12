@@ -24,7 +24,7 @@ class ProductSearchService
                 $q->where('status', 'active');
             })
             ->with([
-                'vendor:id,shop_name,slug,logo,rating,shipping_price',
+                'vendor:id,shop_name,slug,logo,shipping_price',
                 'category:id,name,slug',
                 'primaryImage:id,product_id,image_path,is_primary',
             ]);

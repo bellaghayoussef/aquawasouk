@@ -4,7 +4,6 @@ import { ref, onMounted, computed } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SEO from '@/Components/SEO.vue';
 import BannerCarousel from '@/Components/BannerCarousel.vue';
-
 const props = defineProps({
     product: Object,
     relatedProducts: {
@@ -27,6 +26,76 @@ const form = useForm({
     quantity: 1,
 });
 
+// ─── Variations ───────────────────────────────────────────────────────────────
+const variations = computed(() => props.product.variations || []);
+
+const hasVariations = computed(() => variations.value.length > 0);
+
+// Distinct available colors (non-null)
+const availableColors = computed(() => {
+    const seen = new Set();
+    return variations.value
+        .filter(v => v.color)
+        .filter(v => { if (seen.has(v.color)) return false; seen.add(v.color); return true; });
+});
+
+// Distinct available sizes (non-null)
+const availableSizes = computed(() => {
+    const seen = new Set();
+    return variations.value
+        .filter(v => v.size)
+        .filter(v => { if (seen.has(v.size)) return false; seen.add(v.size); return true; });
+});
+
+const selectedColor = ref(null);
+const selectedSize  = ref(null);
+
+// The matching variation given current selection
+const selectedVariation = computed(() => {
+    if (!hasVariations.value) return null;
+    return variations.value.find(v => {
+        const colorMatch = !availableColors.value.length || v.color === selectedColor.value;
+        const sizeMatch  = !availableSizes.value.length  || v.size  === selectedSize.value;
+        return colorMatch && sizeMatch;
+    }) || null;
+});
+
+// Is a size out-of-stock for the selected color?
+const isSizeAvailable = (size) => {
+    return variations.value.some(v => {
+        const colorMatch = !selectedColor.value || v.color === selectedColor.value;
+        return colorMatch && v.size === size && v.stock > 0;
+    });
+};
+
+// Is a color out-of-stock (all its variants at 0)?
+const isColorAvailable = (color) => {
+    return variations.value.some(v => v.color === color && v.stock > 0);
+};
+
+// Effective stock (variation or product total)
+const effectiveStock = computed(() => {
+    if (selectedVariation.value) return selectedVariation.value.stock;
+    if (hasVariations.value) return variations.value.reduce((s, v) => s + (v.stock || 0), 0);
+    return props.product.stock;
+});
+
+// Effective price (variation override or product price)
+const effectivePrice = computed(() => {
+    if (selectedVariation.value?.price) return Number(selectedVariation.value.price);
+    return props.product.discount_price > 0
+        ? Number(props.product.discount_price)
+        : Number(props.product.price);
+});
+
+// Variation selection is complete (or not needed)
+const variationReady = computed(() => {
+    if (!hasVariations.value) return true;
+    const needColor = availableColors.value.length > 0;
+    const needSize  = availableSizes.value.length  > 0;
+    return (!needColor || selectedColor.value) && (!needSize || selectedSize.value);
+});
+
 const tunisianGovernorates = [
     'Tunis', 'Ariana', 'Ben Arous', 'Manouba', 'Nabeul', 'Zaghouan',
     'Bizerte', 'Béja', 'Jendouba', 'Le Kef', 'Siliana', 'Sousse',
@@ -43,6 +112,9 @@ const directOrderForm = useForm({
     shipping_address: '',
     shipping_postal_code: '',
     notes: '',
+    color: '',
+    size: '',
+    variation_id: null,
 });
 
 const selectedImage = ref(
@@ -65,16 +137,14 @@ const getDiscountPercentage = (price, discountPrice) => {
     return Math.round(((price - discountPrice) / price) * 100);
 };
 
-const unitPrice = computed(() => {
-    return props.product.discount_price > 0 ? Number(props.product.discount_price) : Number(props.product.price);
-});
+const unitPrice = computed(() => effectivePrice.value);
 
 const shippingFee = computed(() => {
     return Number(props.product.vendor?.shipping_price || 0);
 });
 
 const directSubtotal = computed(() => {
-    return unitPrice.value * directOrderForm.quantity;
+    return effectivePrice.value * directOrderForm.quantity;
 });
 
 const directTotal = computed(() => {
@@ -97,7 +167,7 @@ const parsedSpecifications = computed(() => {
 });
 
 const incrementQty = () => {
-    if (directOrderForm.quantity < props.product.stock) {
+    if (directOrderForm.quantity < effectiveStock.value) {
         directOrderForm.quantity++;
         form.quantity = directOrderForm.quantity;
     }
@@ -110,20 +180,46 @@ const decrementQty = () => {
     }
 };
 
+const syncVariationToForms = () => {
+    directOrderForm.color        = selectedColor.value || '';
+    directOrderForm.size         = selectedSize.value  || '';
+    directOrderForm.variation_id = selectedVariation.value?.id || null;
+    form.color        = selectedColor.value || '';
+    form.size         = selectedSize.value  || '';
+    form.variation_id = selectedVariation.value?.id || null;
+    // Reset qty if it exceeds available stock
+    if (directOrderForm.quantity > effectiveStock.value) {
+        directOrderForm.quantity = 1;
+        form.quantity = 1;
+    }
+};
+
+const selectColor = (color) => {
+    selectedColor.value = color === selectedColor.value ? null : color;
+    syncVariationToForms();
+};
+
+const selectSize = (size) => {
+    selectedSize.value = size === selectedSize.value ? null : size;
+    syncVariationToForms();
+};
+
 const addToCart = () => {
-    form.quantity = directOrderForm.quantity;
+    form.quantity     = directOrderForm.quantity;
+    form.color        = selectedColor.value || '';
+    form.size         = selectedSize.value  || '';
+    form.variation_id = selectedVariation.value?.id || null;
     form.post(route('cart.add'), {
         preserveScroll: true,
-        onSuccess: () => {
-            form.reset('quantity');
-        },
+        onSuccess: () => { form.reset('quantity'); },
     });
 };
 
 const submitDirectOrder = () => {
-    directOrderForm.post(route('orders.direct'), {
-        preserveScroll: true,
-    });
+    directOrderForm.color        = selectedColor.value || '';
+    directOrderForm.size         = selectedSize.value  || '';
+    directOrderForm.variation_id = selectedVariation.value?.id || null;
+    directOrderForm.post(route('orders.direct'), { preserveScroll: true });
 };
 
 const selectImage = (imagePath) => {
@@ -306,6 +402,132 @@ onMounted(() => {
                         </div>
                     </div>
 
+                    <!-- ─── Color & Size Picker (only if variations exist) ─── -->
+                    <div v-if="hasVariations" class="space-y-5 p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+
+                        <!-- Color Picker -->
+                        <div v-if="availableColors.length > 0">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Couleur</span>
+                                <span v-if="selectedColor"
+                                      class="text-xs font-bold text-slate-800 dark:text-white px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 shadow-sm">
+                                    {{ selectedColor }}
+                                </span>
+                                <span v-else class="text-xs text-red-500 font-semibold">— Choisir</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2.5">
+                                <button
+                                    v-for="v in availableColors"
+                                    :key="v.color"
+                                    type="button"
+                                    @click="selectColor(v.color)"
+                                    :disabled="!isColorAvailable(v.color)"
+                                    :title="v.color"
+                                    class="relative w-9 h-9 rounded-full border-2 transition-all duration-150 shadow-sm focus:outline-none"
+                                    :class="[
+                                        selectedColor === v.color
+                                            ? 'border-sky-500 ring-2 ring-sky-400/40 scale-110'
+                                            : 'border-slate-300 dark:border-slate-600 hover:scale-105',
+                                        !isColorAvailable(v.color) ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+                                    ]"
+                                    :style="v.color_hex ? { backgroundColor: v.color_hex } : {}"
+                                >
+                                    <!-- Fallback text pill when no hex -->
+                                    <span v-if="!v.color_hex"
+                                          class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 rounded-full">
+                                        {{ v.color.substring(0,2).toUpperCase() }}
+                                    </span>
+                                    <!-- Strikethrough for out-of-stock -->
+                                    <span v-if="!isColorAvailable(v.color)"
+                                          class="absolute inset-0 flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6"/>
+                                        </svg>
+                                    </span>
+                                    <!-- Selected check -->
+                                    <span v-else-if="selectedColor === v.color"
+                                          class="absolute inset-0 flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Size Picker -->
+                        <div v-if="availableSizes.length > 0">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Taille</span>
+                                <span v-if="selectedSize"
+                                      class="text-xs font-bold text-slate-800 dark:text-white px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 shadow-sm">
+                                    {{ selectedSize }}
+                                </span>
+                                <span v-else class="text-xs text-red-500 font-semibold">— Choisir</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="v in availableSizes"
+                                    :key="v.size"
+                                    type="button"
+                                    @click="selectSize(v.size)"
+                                    :disabled="!isSizeAvailable(v.size)"
+                                    class="relative min-w-[2.75rem] h-10 px-3 rounded-xl border-2 text-xs font-black transition-all duration-150 focus:outline-none"
+                                    :class="[
+                                        selectedSize === v.size
+                                            ? 'bg-sky-500 border-sky-500 text-white shadow-md shadow-sky-200 dark:shadow-sky-900 scale-105'
+                                            : 'bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-sky-400 hover:text-sky-600',
+                                        !isSizeAvailable(v.size)
+                                            ? 'opacity-30 cursor-not-allowed line-through'
+                                            : 'cursor-pointer hover:scale-105',
+                                    ]"
+                                >
+                                    {{ v.size }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Variation stock feedback -->
+                        <div v-if="variationReady && selectedVariation" class="flex items-center gap-2 text-xs font-semibold">
+                            <span v-if="selectedVariation.stock > 5"
+                                  class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                {{ selectedVariation.stock }} en stock pour cette combinaison
+                            </span>
+                            <span v-else-if="selectedVariation.stock > 0"
+                                  class="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                Plus que {{ selectedVariation.stock }} disponible(s) !
+                            </span>
+                            <span v-else
+                                  class="inline-flex items-center gap-1.5 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-3 py-1 rounded-full border border-red-200 dark:border-red-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                Rupture de stock pour cette combinaison
+            </span>
+                        </div>
+
+                        <!-- Price update when variation has own price -->
+                        <div v-if="selectedVariation?.price" class="flex items-center gap-2">
+                            <span class="text-2xl font-black text-brand-600 dark:text-sky-400">
+                                {{ formatPrice(selectedVariation.price) }}
+                            </span>
+                            <span class="text-xs text-slate-400 font-medium">pour cette variante</span>
+                        </div>
+                    </div>
+
+                    <!-- ─── Variation required warning ─── -->
+                    <div v-if="hasVariations && !variationReady"
+                         class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs font-semibold">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z"/>
+                        </svg>
+                        Veuillez sélectionner
+                        {{ availableColors.length && !selectedColor ? 'une couleur' : '' }}
+                        {{ availableColors.length && !selectedColor && availableSizes.length && !selectedSize ? ' et ' : '' }}
+                        {{ availableSizes.length && !selectedSize ? 'une taille' : '' }}
+                        avant de commander.
+                    </div>
+
                     <!-- Express Direct Order Card (Cash on Delivery) -->
                     <div class="p-6 rounded-3xl bg-gradient-to-br from-white via-slate-50 to-brand-50/20 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border-2 border-brand-500/30 hover:border-brand-500/60 shadow-xl hover:shadow-2xl hover:shadow-brand-500/10 transition-all duration-300 relative overflow-hidden">
                         <!-- Top Header -->
@@ -345,7 +567,7 @@ onMounted(() => {
                                         <button
                                             type="button"
                                             @click="decrementQty"
-                                            :disabled="directOrderForm.quantity <= 1 || product.stock === 0"
+                                            :disabled="directOrderForm.quantity <= 1 || effectiveStock === 0"
                                             class="px-3.5 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-base font-black transition cursor-pointer"
                                         >
                                             -
@@ -354,14 +576,14 @@ onMounted(() => {
                                             type="number"
                                             v-model.number="directOrderForm.quantity"
                                             min="1"
-                                            :max="product.stock"
-                                            :disabled="product.stock === 0"
+                                            :max="effectiveStock"
+                                            :disabled="effectiveStock === 0"
                                             class="w-14 text-center border-0 py-1.5 text-sm font-bold text-slate-900 dark:text-white dark:bg-slate-800 focus:ring-0"
                                         />
                                         <button
                                             type="button"
                                             @click="incrementQty"
-                                            :disabled="directOrderForm.quantity >= product.stock || product.stock === 0"
+                                            :disabled="directOrderForm.quantity >= effectiveStock || effectiveStock === 0"
                                             class="px-3.5 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-base font-black transition cursor-pointer"
                                         >
                                             +
@@ -477,7 +699,7 @@ onMounted(() => {
                             <!-- Big Primary Action Button -->
                             <button
                                 type="submit"
-                                :disabled="product.stock === 0 || directOrderForm.processing"
+                                :disabled="effectiveStock === 0 || directOrderForm.processing || !variationReady"
                                 class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-200 transform active:scale-[0.99] flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                                 <svg v-if="directOrderForm.processing" class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -485,7 +707,10 @@ onMounted(() => {
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                                 </svg>
                                 <span v-if="directOrderForm.processing">{{ __('processing') }}</span>
-                                <span v-else-if="product.stock === 0">{{ __('out_of_stock') }}</span>
+                                <span v-else-if="effectiveStock === 0">{{ __('out_of_stock') }}</span>
+                                <span v-else-if="!variationReady" class="flex items-center gap-2 text-base opacity-80">
+                                    ⚠️ Choisissez vos options
+                                </span>
                                 <span v-else class="flex items-center gap-2 text-base">
                                     <svg class="w-5 h-5 text-emerald-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -532,7 +757,7 @@ onMounted(() => {
                     <form @submit.prevent="addToCart">
                         <button
                             type="submit"
-                            :disabled="product.stock === 0 || form.processing"
+                            :disabled="effectiveStock === 0 || form.processing || !variationReady"
                             class="w-full bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold py-3.5 px-6 rounded-2xl transition border-2 border-slate-200 dark:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 shadow-sm"
                         >
                             <svg class="w-5 h-5 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">

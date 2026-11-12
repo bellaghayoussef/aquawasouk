@@ -13,6 +13,7 @@ class AuthProvider with ChangeNotifier {
   String? get error => _error;
   bool get isAuthenticated => _user != null;
   bool get isVendor => _user?.isVendor ?? false;
+  bool get isAdmin => _user?.isAdmin ?? false;
 
   // Initialize - check if user is logged in
   Future<void> init() async {
@@ -98,28 +99,26 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Google Sign-In
-  // Future<bool> signInWithGoogle() async {
-  //   try {
-  //     _isLoading = true;
-  //     _error = null;
-  //     notifyListeners();
-  //
-  //     final data = await AuthService.signInWithGoogle();
-  //     _user = User.fromJson(data['user']);
-  //     _error = null;
-  //     notifyListeners();
-  //     return true;
-  //   } catch (e) {
-  //     print("hnaaaaaaaaaaaaaaaaaaaaaaaaa");
-  //     _error = e.toString().replaceAll('Exception: ', '');
-  //     print(e.toString());
-  //     notifyListeners();
-  //     return false;
-  //   } finally {
-  //     _isLoading = false;
-  //     notifyListeners();
-  //   }
-  // }
+  Future<bool> signInWithGoogle() async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final data = await AuthService.signInWithGoogle();
+      _user = User.fromJson(data['user']);
+      _error = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   // Logout
   Future<void> logout() async {

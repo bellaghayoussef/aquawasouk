@@ -114,7 +114,8 @@ class _CategoriesTabState extends State<CategoriesTab> {
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryLight.withOpacity(0.12),
+                            color:
+                                AppTheme.primaryLight.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -190,7 +191,7 @@ class _CategoriesTabState extends State<CategoriesTab> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
+                                  color: Colors.black.withValues(alpha: 0.04),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -254,8 +255,10 @@ class _CategoriesTabState extends State<CategoriesTab> {
                                           begin: Alignment.topCenter,
                                           end: Alignment.bottomCenter,
                                           colors: [
-                                            Colors.black.withOpacity(0.05),
-                                            Colors.black.withOpacity(0.25),
+                                            Colors.black
+                                                .withValues(alpha: 0.05),
+                                            Colors.black
+                                                .withValues(alpha: 0.25),
                                           ],
                                         ),
                                       ),

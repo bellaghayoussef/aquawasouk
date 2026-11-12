@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import DashboardLayout from '@/Layouts/DashboardLayout.vue';
 import InputError from '@/Components/InputError.vue';
@@ -14,7 +15,18 @@ const form = useForm({
     parent_id: '',
     name: '',
     description: '',
+    image: null,
 });
+
+const imagePreview = ref(null);
+
+const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        form.image = file;
+        imagePreview.value = URL.createObjectURL(file);
+    }
+};
 
 const submit = () => {
     form.post(route('admin.categories.store'));
@@ -77,6 +89,21 @@ const submit = () => {
                                     rows="4"
                                 ></textarea>
                                 <InputError class="mt-2" :message="form.errors.description" />
+                            </div>
+
+                            <div>
+                                <InputLabel for="image" value="Category Image" />
+                                <input
+                                    id="image"
+                                    type="file"
+                                    accept="image/*"
+                                    class="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-gray-700 dark:file:text-gray-300"
+                                    @change="handleImageChange"
+                                />
+                                <InputError class="mt-2" :message="form.errors.image" />
+                                <div v-if="imagePreview" class="mt-3">
+                                    <img :src="imagePreview" alt="Category Preview" class="w-24 h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm" />
+                                </div>
                             </div>
 
                             <div class="flex items-center gap-4">

@@ -16,7 +16,7 @@
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0 scale-75 translate-y-4"
         x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-        class="fixed bottom-6 {{ $isAr ? 'left-6' : 'right-6' }} z-50 flex items-center gap-3"
+        class="fixed bottom-18 md:bottom-6 {{ $isAr ? 'left-4 sm:left-6' : 'right-4 sm:right-6' }} z-30 sm:z-50 flex items-center gap-3"
     >
         <!-- Proactive Speech Bubble Notification (shown on first visit) -->
         <div 
@@ -60,7 +60,7 @@
         x-transition:leave="transition ease-in duration-200"
         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
         x-transition:leave-end="opacity-0 translate-y-8 scale-95"
-        class="fixed bottom-4 sm:bottom-6 {{ $isAr ? 'left-4 sm:left-6' : 'right-4 sm:right-6' }} z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[620px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden text-slate-800"
+        class="fixed bottom-16 sm:bottom-6 {{ $isAr ? 'left-2 sm:left-6' : 'right-2 sm:right-6' }} z-50 w-[420px] max-w-[calc(100vw-1rem)] h-[600px] sm:h-[620px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden text-slate-800"
     >
         <!-- 1. HEADER BAR -->
         <div class="bg-gradient-to-r from-slate-950 via-sky-950 to-indigo-950 text-white p-4 shrink-0 flex items-center justify-between border-b border-white/10">
@@ -428,31 +428,44 @@ function shoppingChatbot(locale, csrfToken) {
         trackingLoading: false,
         trackingResult: null,
         trackingError: '',
+        configLoaded: false,
 
-        async init() {
-            // Load initial config and greeting
+        init() {
+            // Lazy load config during idle time so it doesn't block LCP/FCP
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(() => this.loadConfig(), { timeout: 4000 });
+            } else {
+                setTimeout(() => this.loadConfig(), 3500);
+            }
+        },
+
+        async loadConfig() {
+            if (this.configLoaded) return;
+            this.configLoaded = true;
             try {
                 const res = await fetch(`/shopping-assistant/config?locale=${this.locale}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.welcome_message) {
-                        this.messages.push({
+                        this.messages = [{
                             sender: 'assistant',
                             text: data.welcome_message,
                             quick_actions: data.suggested_actions || []
-                        });
+                        }];
                     }
                     if (data.cart) {
                         this.cart = data.cart;
                     }
                 }
             } catch (e) {
-                this.messages.push({
-                    sender: 'assistant',
-                    text: this.locale === 'ar' 
-                        ? 'مرحباً بك في أكواسوق! كيف يمكنني مساعدتك اليوم؟' 
-                        : "Bonjour ! Bienvenue sur AquawaSouk. Comment puis-je vous aider aujourd'hui ?"
-                });
+                if (this.messages.length === 0) {
+                    this.messages.push({
+                        sender: 'assistant',
+                        text: this.locale === 'ar' 
+                            ? 'مرحباً بك في أكواسوق! كيف يمكنني مساعدتك اليوم؟' 
+                            : "Bonjour ! Bienvenue sur AquawaSouk. Comment puis-je vous aider aujourd'hui ?"
+                    });
+                }
             }
         },
 
@@ -460,6 +473,7 @@ function shoppingChatbot(locale, csrfToken) {
             this.isOpen = !this.isOpen;
             this.showBubble = false;
             if (this.isOpen) {
+                if (!this.configLoaded) this.loadConfig();
                 this.$nextTick(() => {
                     this.scrollToBottom();
                     this.$refs.messageInput?.focus();
@@ -470,6 +484,7 @@ function shoppingChatbot(locale, csrfToken) {
         openChat() {
             this.isOpen = true;
             this.showBubble = false;
+            if (!this.configLoaded) this.loadConfig();
             this.$nextTick(() => {
                 this.scrollToBottom();
                 this.$refs.messageInput?.focus();
@@ -478,7 +493,8 @@ function shoppingChatbot(locale, csrfToken) {
 
         resetChat() {
             this.messages = [];
-            this.init();
+            this.configLoaded = false;
+            this.loadConfig();
         },
 
         scrollToBottom() {
@@ -497,11 +513,12 @@ function shoppingChatbot(locale, csrfToken) {
             this.$nextTick(() => this.scrollToBottom());
 
             try {
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || this.csrfToken || '';
                 const res = await fetch('/shopping-assistant/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken,
+                        'X-CSRF-TOKEN': token,
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({
@@ -558,11 +575,12 @@ function shoppingChatbot(locale, csrfToken) {
 
         async addToCartDirect(productId) {
             try {
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || this.csrfToken || '';
                 const res = await fetch('/shopping-assistant/cart/add', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken,
+                        'X-CSRF-TOKEN': token,
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({ product_id: productId, quantity: 1 })
@@ -607,11 +625,12 @@ function shoppingChatbot(locale, csrfToken) {
             this.trackingError = '';
 
             try {
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || this.csrfToken || '';
                 const res = await fetch('/shopping-assistant/order-tracking', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken,
+                        'X-CSRF-TOKEN': token,
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({

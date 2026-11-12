@@ -21,9 +21,9 @@ const isCustomer = user.role === 'customer';
         <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col flex-shrink-0 border-r border-slate-800">
             <!-- Brand / Logo -->
             <div class="p-5 border-b border-slate-800 flex items-center justify-between h-16">
-                <Link :href="route('home')" class="flex items-center gap-2.5 group">
+                <a :href="route('home')" class="flex items-center gap-2.5 group">
                     <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white flex items-center justify-center font-bold font-display text-base shadow-sm">
-                        A
+                        Aq
                     </div>
                     <div>
                         <span class="block text-base font-extrabold font-display text-white tracking-tight leading-none">
@@ -33,7 +33,7 @@ const isCustomer = user.role === 'customer';
                             {{ isAdmin ? 'Administration' : (isVendor ? 'Portail Vendeur' : 'Mon Compte') }}
                         </span>
                     </div>
-                </Link>
+                </a>
             </div>
 
             <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto custom-scrollbar">
@@ -92,6 +92,10 @@ const isCustomer = user.role === 'customer';
                         <svg class="w-4 h-4 mr-2.5 opacity-80 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                         Passerelle SMS (TextBee)
                     </Link>
+                    <Link :href="route('admin.ecomness.index')" :class="['flex items-center px-3 py-2 text-xs font-semibold rounded-xl transition', route().current('admin.ecomness*') ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white']">
+                        <svg class="w-4 h-4 mr-2.5 opacity-80 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Ecomness DropShipping
+                    </Link>
                 </template>
 
                 <!-- Vendor Links -->
@@ -133,10 +137,10 @@ const isCustomer = user.role === 'customer';
                 </template>
 
                 <div class="border-t border-slate-800 my-4 pt-4">
-                    <Link :href="route('home')" class="flex items-center px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition">
+                    <a :href="route('home')" class="flex items-center px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition">
                         <svg class="w-4 h-4 mr-2.5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                         Retour à la boutique
-                    </Link>
+                    </a>
                     <Link :href="route('logout')" method="post" as="button" class="w-full flex items-center px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-950/40 rounded-xl transition text-left mt-1">
                         <svg class="w-4 h-4 mr-2.5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         Déconnexion
@@ -165,10 +169,10 @@ const isCustomer = user.role === 'customer';
                 <div class="w-full px-4 sm:px-6 lg:px-8 flex justify-between items-center">
                     <!-- Mobile Logo -->
                     <div class="flex items-center md:hidden">
-                        <Link :href="route('home')" class="flex items-center gap-2">
+                        <a :href="route('home')" class="flex items-center gap-2">
                             <div class="w-8 h-8 rounded-lg bg-brand-600 text-white font-bold flex items-center justify-center text-sm">A</div>
                             <span class="font-extrabold font-display text-slate-900">Aquawa<span class="text-brand-600">Souk</span></span>
-                        </Link>
+                        </a>
                     </div>
 
                     <div class="hidden md:flex items-center gap-2 text-xs text-slate-500">
@@ -177,22 +181,29 @@ const isCustomer = user.role === 'customer';
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <Link :href="route('home')" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                        <a :href="route('home')" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
                             Voir le site
-                        </Link>
+                        </a>
 
                         <div class="relative">
                             <Dropdown align="right" width="48">
                                 <template #trigger>
                                     <button
                                         type="button"
-                                        class="inline-flex items-center gap-2 px-3 py-1.5 border border-slate-200 text-xs font-semibold rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition"
+                                        class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 border border-slate-200 text-xs font-semibold rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition max-w-[130px] sm:max-w-none"
                                     >
-                                        {{ user.name }}
-                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                        <div class="w-6 h-6 rounded-md bg-brand-600/10 text-brand-600 font-bold text-[11px] flex items-center justify-center shrink-0">
+                                            {{ user.name.charAt(0).toUpperCase() }}
+                                        </div>
+                                        <span class="truncate hidden sm:inline">{{ user.name }}</span>
+                                        <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                     </button>
                                 </template>
                                 <template #content>
+                                    <div class="px-4 py-2 border-b border-slate-100 sm:hidden">
+                                        <p class="text-xs font-bold text-slate-900 truncate">{{ user.name }}</p>
+                                        <p class="text-[10px] text-slate-400 capitalize">{{ user.role }}</p>
+                                    </div>
                                     <DropdownLink :href="route('profile.edit')"> Profil & Paramètres </DropdownLink>
                                     <DropdownLink :href="route('logout')" method="post" as="button"> Déconnexion </DropdownLink>
                                 </template>
@@ -203,10 +214,14 @@ const isCustomer = user.role === 'customer';
                         <div class="flex items-center md:hidden">
                             <button
                                 @click="showingNavigationDropdown = !showingNavigationDropdown"
-                                class="p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+                                class="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition active:scale-95"
+                                aria-label="Menu"
                             >
-                                <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <svg v-if="!showingNavigationDropdown" class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                                <svg v-else class="h-6 w-6 text-slate-800" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
@@ -214,23 +229,67 @@ const isCustomer = user.role === 'customer';
                 </div>
             </nav>
 
-            <!-- Responsive Navigation Menu -->
-            <div v-if="showingNavigationDropdown" class="md:hidden bg-slate-900 text-white p-4 space-y-2 border-b border-slate-800">
+            <!-- Responsive Navigation Menu (Mobile Drawer) -->
+            <div v-if="showingNavigationDropdown" class="md:hidden bg-slate-900 text-white p-4 space-y-3 border-b border-slate-800 animate-in slide-in-from-top-2 duration-150">
+                <div class="flex items-center gap-3 px-3 py-2 bg-slate-800/60 rounded-xl mb-2">
+                    <div class="w-8 h-8 rounded-lg bg-brand-600/30 text-brand-300 border border-brand-500/30 flex items-center justify-center font-bold text-xs">
+                        {{ user.name.charAt(0).toUpperCase() }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-white truncate">{{ user.name }}</p>
+                        <p class="text-[10px] text-slate-400 capitalize">{{ isAdmin ? 'Administrateur' : (isVendor ? 'Vendeur Partenaire' : 'Client') }}</p>
+                    </div>
+                </div>
+
                 <template v-if="isAdmin">
-                    <Link :href="route('admin.dashboard')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Tableau de bord</Link>
-                    <Link :href="route('admin.users')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Utilisateurs</Link>
-                    <Link :href="route('admin.vendors')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Vendeurs</Link>
-                    <Link :href="route('admin.cash-register')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Caisse & Retraits</Link>
-                    <Link :href="route('admin.products')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Produits</Link>
-                    <Link :href="route('admin.orders')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Commandes</Link>
+                    <p class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gestion Plateforme</p>
+                    <div class="space-y-1">
+                        <Link :href="route('admin.dashboard')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('admin.dashboard') ? 'bg-brand-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800']">Tableau de bord</Link>
+                        <Link :href="route('admin.users')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('admin.users*') ? 'bg-brand-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800']">Utilisateurs</Link>
+                        <Link :href="route('admin.vendors')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('admin.vendors*') ? 'bg-brand-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800']">Vendeurs</Link>
+                        <Link :href="route('admin.cash-register')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('admin.cash-register*') ? 'bg-brand-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800']">Caisse & Retraits</Link>
+                        <Link :href="route('admin.products')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('admin.products') ? 'bg-brand-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800']">Produits</Link>
+                        <Link :href="route('admin.orders')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('admin.orders') ? 'bg-brand-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800']">Commandes</Link>
+                        <Link :href="route('admin.ecomness.index')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('admin.ecomness*') ? 'bg-brand-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800']">Ecomness DropShipping</Link>
+                    </div>
                 </template>
+
                 <template v-if="isVendor">
-                    <Link :href="route('vendor.dashboard')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Tableau de bord</Link>
-                    <Link :href="route('vendor.products')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Mes Produits</Link>
-                    <Link :href="route('vendor.orders')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Commandes</Link>
+                    <p class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ma Boutique</p>
+                    <div class="space-y-1">
+                        <Link :href="route('vendor.dashboard')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('vendor.dashboard') ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-slate-300 hover:bg-slate-800']">
+                            <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                            Tableau de bord
+                        </Link>
+                        <Link :href="route('vendor.products')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('vendor.products*') ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-slate-300 hover:bg-slate-800']">
+                            <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                            Mes Produits
+                        </Link>
+                        <Link :href="route('vendor.orders')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('vendor.orders*') ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-slate-300 hover:bg-slate-800']">
+                            <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                            Commandes reçues
+                        </Link>
+                        <Link :href="route('vendor.settings')" :class="['flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl transition', route().current('vendor.settings*') ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-slate-300 hover:bg-slate-800']">
+                            <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Paramètres Boutique
+                        </Link>
+                    </div>
                 </template>
-                <Link :href="route('profile.edit')" class="block px-3 py-2 text-xs font-medium rounded-lg hover:bg-slate-800">Profil</Link>
-                <Link :href="route('logout')" method="post" as="button" class="block w-full text-left px-3 py-2 text-xs font-medium text-rose-400 hover:bg-slate-800">Déconnexion</Link>
+
+                <div class="border-t border-slate-800 pt-2 space-y-1">
+                    <a :href="route('home')" class="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition">
+                        <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Retour à la boutique
+                    </a>
+                    <Link :href="route('profile.edit')" class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl">
+                        <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        Mon Profil
+                    </Link>
+                    <Link :href="route('logout')" method="post" as="button" class="flex items-center gap-2.5 w-full text-left px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-950/40 rounded-xl">
+                        <svg class="w-4 h-4 shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        Déconnexion
+                    </Link>
+                </div>
             </div>
 
             <!-- Page Header -->

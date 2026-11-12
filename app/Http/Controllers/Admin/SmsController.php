@@ -50,8 +50,31 @@ class SmsController extends Controller
         $deviceId = $this->smsService->getDeviceId();
         $apiKey = $this->smsService->getApiKey();
 
+        $userCols = ['id', 'name', 'email'];
+        if (Schema::hasColumn('users', 'phone')) {
+            $userCols[] = 'phone';
+        }
+
+        $vendorsList = Vendor::with(['user' => fn($q) => $q->select($userCols)])
+            ->select('id', 'user_id', 'shop_name', 'phone', 'status', 'city', 'created_at')
+            ->latest()
+            ->get()
+            ->map(function ($v) {
+                return [
+                    'id' => $v->id,
+                    'shop_name' => $v->shop_name,
+                    'phone' => $v->phone ?: ($v->user && isset($v->user->phone) ? $v->user->phone : null),
+                    'status' => $v->status,
+                    'city' => $v->city ?? '',
+                    'owner_name' => $v->user ? $v->user->name : 'N/A',
+                    'owner_email' => $v->user ? $v->user->email : '',
+                    'created_at' => $v->created_at ? $v->created_at->format('d/m/Y') : '',
+                ];
+            });
+
         return Inertia::render('Admin/Sms/Index', [
             'logs' => $logs,
+            'vendorsList' => $vendorsList,
             'stats' => [
                 'total_sent' => (int) $totalSent,
                 'total_failed' => (int) $totalFailed,
@@ -71,14 +94,40 @@ class SmsController extends Controller
     public function send(Request $request)
     {
         $request->validate([
-            'recipient_type' => 'required|in:custom,vendors,customers,all',
+            'recipient_type' => 'required|in:custom,selected_vendors,vendors,customers,all',
             'custom_recipients' => 'required_if:recipient_type,custom|nullable|string',
+            'selected_vendor_ids' => 'required_if:recipient_type,selected_vendors|nullable|array',
+            'selected_vendor_ids.*' => 'integer|exists:vendors,id',
+            'activate_vendors' => 'nullable|boolean',
             'message' => 'required|string|max:1000',
         ]);
 
         $recipients = [];
 
         switch ($request->input('recipient_type')) {
+            case 'selected_vendors':
+                $vendorIds = (array) $request->input('selected_vendor_ids', []);
+                if (empty($vendorIds)) {
+                    return back()->with('error', 'Veuillez sélectionner au moins un vendeur.');
+                }
+
+                $selectedVendors = Vendor::with('user')->whereIn('id', $vendorIds)->get();
+                $activatedCount = 0;
+
+                foreach ($selectedVendors as $v) {
+                    $phone = $v->phone ?: ($v->user && isset($v->user->phone) ? $v->user->phone : null);
+                    if (!empty($phone)) {
+                        $recipients[] = $phone;
+                    }
+
+                    // Automatically activate vendor account if requested
+                    if ($request->boolean('activate_vendors') && $v->status !== 'active') {
+                        $v->update(['status' => 'active']);
+                        $activatedCount++;
+                    }
+                }
+                break;
+
             case 'vendors':
                 $recipients = Vendor::whereNotNull('phone')
                     ->where('phone', '!=', '')

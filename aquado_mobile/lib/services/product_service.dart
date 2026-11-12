@@ -4,9 +4,25 @@ import '../models/order.dart';
 import '../models/review.dart';
 import 'api_service.dart';
 
+class PaginatedProducts {
+  final List<Product> products;
+  final int currentPage;
+  final int lastPage;
+  final int total;
+  final bool hasMore;
+
+  PaginatedProducts({
+    required this.products,
+    required this.currentPage,
+    required this.lastPage,
+    required this.total,
+    required this.hasMore,
+  });
+}
+
 class ProductService {
-  // Get all products
-  static Future<List<Product>> getProducts({
+  // Get all products with pagination metadata
+  static Future<PaginatedProducts> getProductsPaginated({
     String? search,
     String? category,
     String? vendor,
@@ -20,9 +36,15 @@ class ProductService {
   }) async {
     final queryParams = <String, dynamic>{'page': page, 'per_page': perPage};
 
-    if (search != null) queryParams['search'] = search;
-    if (category != null) queryParams['category'] = category;
-    if (vendor != null) queryParams['vendor'] = vendor;
+    if (search != null && search.trim().isNotEmpty) {
+      queryParams['search'] = search.trim();
+    }
+    if (category != null && category.trim().isNotEmpty) {
+      queryParams['category'] = category.trim();
+    }
+    if (vendor != null && vendor.trim().isNotEmpty) {
+      queryParams['vendor'] = vendor.trim();
+    }
     if (minPrice != null) queryParams['min_price'] = minPrice;
     if (maxPrice != null) queryParams['max_price'] = maxPrice;
     if (featured != null) queryParams['featured'] = featured;
@@ -36,11 +58,62 @@ class ProductService {
 
     if (response['success'] == true && response['data'] != null) {
       final data = response['data'];
-      final products = data['data'] as List;
-      return products.map((json) => Product.fromJson(json)).toList();
+      final rawList = data['data'] as List? ?? [];
+      final products = rawList.map((json) => Product.fromJson(json)).toList();
+      final currentPage = data['current_page'] is int
+          ? data['current_page'] as int
+          : int.tryParse(data['current_page']?.toString() ?? '1') ?? 1;
+      final lastPage = data['last_page'] is int
+          ? data['last_page'] as int
+          : int.tryParse(data['last_page']?.toString() ?? '1') ?? 1;
+      final total = data['total'] is int
+          ? data['total'] as int
+          : int.tryParse(data['total']?.toString() ?? '0') ?? products.length;
+
+      return PaginatedProducts(
+        products: products,
+        currentPage: currentPage,
+        lastPage: lastPage,
+        total: total,
+        hasMore: currentPage < lastPage,
+      );
     }
 
-    return [];
+    return PaginatedProducts(
+      products: [],
+      currentPage: page,
+      lastPage: page,
+      total: 0,
+      hasMore: false,
+    );
+  }
+
+  // Get all products (backwards compatible list helper)
+  static Future<List<Product>> getProducts({
+    String? search,
+    String? category,
+    String? vendor,
+    double? minPrice,
+    double? maxPrice,
+    bool? featured,
+    String? sortBy,
+    String? sortOrder,
+    int page = 1,
+    int perPage = 15,
+  }) async {
+    final res = await getProductsPaginated(
+      search: search,
+      category: category,
+      vendor: vendor,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      featured: featured,
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      page: page,
+      perPage: perPage,
+    );
+    return res.products;
   }
 
   // Get single product
@@ -48,7 +121,13 @@ class ProductService {
     final response = await ApiService.get('/products/$slug');
 
     if (response['success'] == true && response['data'] != null) {
-      return Product.fromJson(response['data']);
+      final data = response['data'];
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('product') && data['product'] is Map<String, dynamic>) {
+          return Product.fromJson(data['product']);
+        }
+        return Product.fromJson(data);
+      }
     }
 
     throw Exception('Product not found');

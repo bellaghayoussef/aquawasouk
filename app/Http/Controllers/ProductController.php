@@ -15,9 +15,9 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::with(['vendor', 'category', 'primaryImage', 'reviews'])
-            ->active() ->whereHas('vendor', function ($q) {
-        $q->active();   // vendor scope active()
-    });
+            ->active()->whereHas('vendor', function ($q) {
+                $q->active();   // vendor scope active()
+            });
 
         // Filter by category
         if ($request->filled('category')) {
@@ -90,6 +90,7 @@ class ProductController extends Controller
 
     public function show($slug)
     {
+
         // 1-Hour Cached Product Details (Auto-cleared on update/delete)
         $product = MarketplaceCacheService::remember("product_web_{$slug}", function () use ($slug) {
             return Product::with([

@@ -11,7 +11,7 @@ return [
     'login' => 'Log in',
     'register' => 'Register',
     'logout' => 'Logout',
-    
+
     // Product
     'all_products' => 'All Products',
     'product_details' => 'Product Details',
@@ -44,7 +44,7 @@ return [
     'quantity' => 'Quantity',
     'featured' => 'Featured',
     'featured_product' => 'Featured Product',
-    
+
     // Cart
     'shopping_cart' => 'Shopping Cart',
     'your_cart' => 'Your Cart',
@@ -57,7 +57,7 @@ return [
     'continue_shopping' => 'Continue Shopping',
     'remove' => 'Remove',
     'update' => 'Update',
-    
+
     // Auth
     'welcome_back' => 'Welcome Back',
     'create_account' => 'Create Account',
@@ -70,7 +70,7 @@ return [
     'already_registered' => 'Already registered?',
     'register_now' => 'Register now',
     'name' => 'Name',
-    
+
     // Vendor
     'shop_name' => 'Shop Name',
     'vendor_profile' => 'Vendor Profile',
@@ -104,7 +104,7 @@ return [
     'primary' => 'Primary',
     'new' => 'New',
     'if_set_sale_price' => 'If set, this will be displayed as the sale price',
-    
+
     // Footer
     'about' => 'About',
     'customer_service' => 'Customer Service',
@@ -118,7 +118,7 @@ return [
     'terms_of_service_description' => 'Review our terms of service to understand the rules and responsibilities related to using our platform.',
     'all_rights_reserved' => 'All rights reserved',
     'trusted_marketplace' => 'Your trusted marketplace for aquarium supplies, materials, and fish.',
-    
+
     // Common
     'view_all' => 'View All',
     'view_details' => 'View Details',
@@ -136,7 +136,7 @@ return [
     'by' => 'by',
     'from' => 'from',
     'to' => 'to',
-    
+
     // Messages
     'success' => 'Success',
     'error' => 'Error',
@@ -148,7 +148,7 @@ return [
     'product_created' => 'Product created successfully',
     'product_updated' => 'Product updated successfully',
     'product_deleted' => 'Product deleted successfully',
-    
+
     // Contact
     'contact_intro' => 'Have questions? We\'d love to hear from you.',
     'get_in_touch' => 'Get in Touch',
@@ -157,7 +157,7 @@ return [
     'message' => 'Message',
     'send_message' => 'Send Message',
     'phone' => 'Phone',
-    
+
     // Become Vendor
     'become_a_vendor' => 'Become a Vendor',
     'start_selling_intro' => 'Start your business with Aquawasouk and reach thousands of customers.',
@@ -175,7 +175,7 @@ return [
     'country' => 'Country',
     'agree_terms' => 'I agree to the terms and conditions',
     'submit_application' => 'Submit Application',
-    
+
     // Vendors Page
     'our_trusted_vendors' => 'Our Trusted Vendors',
     'discover_quality_products' => 'Discover quality products from verified sellers',
@@ -184,7 +184,7 @@ return [
     'products_from' => 'Products from',
     'no_products_yet' => 'No products yet',
     'vendor_no_products' => 'This vendor hasn\'t listed any products',
-    
+
     // Checkout
     'payment_method' => 'Payment Method',
     'credit_card' => 'Credit Card',
@@ -197,7 +197,7 @@ return [
     'place_order' => 'Place Order',
     'processing' => 'Processing...',
     'postal_code' => 'Postal Code',
-    
+
     // Blog
     'blog_management' => 'Blog Management',
     'add_post' => 'Add Post',
@@ -230,7 +230,7 @@ return [
     'delivery_address' => 'Delivery Address',
     'city_governorate' => 'City / Governorate',
     'shipping_notes' => 'Delivery notes (optional)',
-    'confirm_direct_order' => 'Confirm Order (Cash on Delivery)',
+    'confirm_direct_order' => 'Confirm Order',
     'unit_price' => 'Unit Price',
     'shipping_fee' => 'Shipping Fee',
     'free_shipping' => 'Free',
@@ -264,4 +264,70 @@ return [
     'all_shops' => 'All Stores',
     'open_shop_free' => 'Open my store for free',
     'search_shop_placeholder' => 'Search a store by name...',
+    'featured_products_title' => 'Featured Products',
+    'most_wanted_this_week' => 'The most requested items this week',
+    'vendor_banner_title' => 'Selling products in Tunisia? Grow your revenue on AquawaSouk!',
+    'vendor_banner_desc' => 'Create your store for free in 2 minutes. Benefit from thousands of daily visitors, a modern dashboard and simplified order management.',
+    'popular_departments' => 'Popular Departments',
+    'browse_by_theme' => 'Browse our categories by theme',
+    '404_title' => 'Page Not Found',
+    '404_meta_desc' => 'The page you are looking for does not exist or has been moved.',
+    '404_heading' => 'Oops! This page got lost.',
+    '404_subtext' => 'The page you\'re looking for doesn\'t exist, was moved, or the link is broken. No worries — head back and keep shopping!',
+    'go_home' => 'Back to Home',
+
+    // Error pages
+    '403_title' => 'Forbidden',
+    '403_meta_desc' => 'You do not have permission to access this page.',
+    '403_heading' => 'Access Denied.',
+    '403_subtext' => 'You don\'t have permission to view this page. If you think this is a mistake, please contact us.',
+
+    '419_title' => 'Page Expired',
+    '419_meta_desc' => 'Your session has expired. Please refresh and try again.',
+    '419_heading' => 'Session Expired.',
+    '419_subtext' => 'Your page session has expired due to inactivity. Please refresh the page and try again.',
+    '419_retry' => 'Refresh Page',
+
+    '429_title' => 'Too Many Requests',
+    '429_meta_desc' => 'You have sent too many requests. Please slow down and try again.',
+    '429_heading' => 'Slow down!',
+    '429_subtext' => 'You\'ve sent too many requests in a short time. Please wait a moment before trying again.',
+    '429_retry' => 'Try Again',
+
+    '500_title' => 'Server Error',
+    '500_meta_desc' => 'Something went wrong on our end. We are working to fix it.',
+    '500_heading' => 'Something went wrong.',
+    '500_subtext' => 'An unexpected error occurred on our server. Our team has been notified and is working to fix it. Please try again shortly.',
+    '500_retry' => 'Try Again',
+
+    '503_title' => 'Under Maintenance',
+    '503_meta_desc' => 'AquawaSouk is currently under maintenance. We will be back shortly.',
+    '503_heading' => 'We\'ll be right back!',
+    '503_subtext' => 'AquawaSouk is currently undergoing scheduled maintenance to bring you a better experience. Please check back in a few minutes.',
+    '503_retry' => 'Reload',
+
+    // Vendor Directory & Filters
+    'sort_by' => 'Sort by',
+    'sort_products_desc' => 'Most products',
+    'sort_name_asc' => 'Name (A - Z)',
+    'sort_name_desc' => 'Name (Z - A)',
+    'sort_latest' => 'Newest partners',
+    'all_cities' => 'All cities',
+    'filter_by_city' => 'Governorate / City',
+    'clear_filters' => 'Clear filters',
+    'visit_shop' => 'Visit store',
+    'verified_partner' => 'Verified Partner',
+
+    // Live Search
+    'live_search_placeholder' => 'Search products, brands, categories...',
+    'live_search_no_results' => 'No products found',
+    'live_search_view_all' => 'View all results for',
+    'quick_results' => 'Quick results',
+
+    // Cart Toast & WhatsApp
+    'cart_added_toast_title' => 'Product added to your cart!',
+    'cart_continue_shopping' => 'Continue shopping',
+    'cart_view_cart' => 'View cart',
+    'whatsapp_chat_support' => 'Need help? Chat with us on WhatsApp',
+    'whatsapp_chat_prefill' => 'Hello AquawaSouk, I have a question about your products.',
 ];

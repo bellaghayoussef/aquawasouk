@@ -77,7 +77,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.successColor.withOpacity(0.12),
+                      color: AppTheme.successColor.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -291,10 +291,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryLight.withOpacity(0.08),
+                      color: AppTheme.primaryLight.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: AppTheme.primaryLight.withOpacity(0.3)),
+                          color: AppTheme.primaryLight.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -474,7 +474,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 16,
               offset: const Offset(0, -4),
             ),
@@ -559,7 +559,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

@@ -111,7 +111,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryLight.withOpacity(0.12),
+                            color:
+                                AppTheme.primaryLight.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -166,7 +167,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 8,
                               offset: const Offset(0, 3),
                             ),
@@ -198,7 +199,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.12),
+                                    color: statusColor.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(

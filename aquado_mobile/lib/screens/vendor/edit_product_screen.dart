@@ -30,7 +30,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   bool _isLoadingCategories = true;
 
   final ImagePicker _picker = ImagePicker();
-  List<XFile> _newImages = [];
+  final List<XFile> _newImages = [];
 
   @override
   void initState() {
@@ -243,7 +243,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                 ],
                               ),
                             );
-                          }).toList(),
+                          }),
 
                           // Existing Images (Visual only for now)
                           if (widget.product.images != null)
@@ -269,7 +269,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                   ),
                                 ),
                               );
-                            }).toList(),
+                            }),
                           // Fallback to single image
                           if ((widget.product.images == null ||
                                   widget.product.images!.isEmpty) &&
@@ -305,7 +305,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
                     // Category
                     DropdownButtonFormField<int>(
-                      value: _selectedCategoryId,
+                      initialValue: _selectedCategoryId,
                       decoration: const InputDecoration(
                         labelText: 'Category *',
                       ),

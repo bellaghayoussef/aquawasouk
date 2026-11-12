@@ -10,7 +10,7 @@ return [
     'login' => 'Connexion',
     'register' => "S'inscrire",
     'logout' => 'Déconnexion',
-    
+
     // Product
     'all_products' => 'Tous les produits',
     'product_details' => 'Détails du produit',
@@ -43,7 +43,7 @@ return [
     'quantity' => 'Quantité',
     'featured' => 'En vedette',
     'featured_product' => 'Produit vedette',
-    
+
     // Cart
     'shopping_cart' => 'Panier d\'achats',
     'your_cart' => 'Votre panier',
@@ -56,7 +56,7 @@ return [
     'continue_shopping' => 'Continuer mes achats',
     'remove' => 'Retirer',
     'update' => 'Mettre à jour',
-    
+
     // Auth
     'welcome_back' => 'Bienvenue',
     'create_account' => 'Créer un compte',
@@ -69,7 +69,7 @@ return [
     'already_registered' => 'Déjà inscrit?',
     'register_now' => 'Inscrivez-vous',
     'name' => 'Nom',
-    
+
     // Vendor
     'shop_name' => 'Nom de la boutique',
     'vendor_profile' => 'Profil du vendeur',
@@ -103,7 +103,7 @@ return [
     'primary' => 'Principale',
     'new' => 'Nouveau',
     'if_set_sale_price' => 'Si défini, cela sera affiché comme prix de vente',
-    
+
     // Footer
     'about' => 'À propos',
     'customer_service' => 'Service client',
@@ -117,7 +117,7 @@ return [
     'terms_of_service_description' => 'Lisez nos conditions d\'utilisation pour comprendre les règles et responsabilités liées à l\'utilisation de notre plateforme.',
     'all_rights_reserved' => 'Tous droits réservés',
     'trusted_marketplace' => 'Votre marché de confiance pour les fournitures d\'aquarium, les matériaux et les poissons.',
-    
+
     // Common
     'view_all' => 'Voir tout',
     'view_details' => 'Voir les détails',
@@ -135,7 +135,7 @@ return [
     'by' => 'par',
     'from' => 'de',
     'to' => 'à',
-    
+
     // Messages
     'success' => 'Succès',
     'error' => 'Erreur',
@@ -147,7 +147,7 @@ return [
     'product_created' => 'Produit créé avec succès',
     'product_updated' => 'Produit mis à jour avec succès',
     'product_deleted' => 'Produit supprimé avec succès',
-    
+
     // Contact
     'contact_intro' => 'Vous avez des questions ? Nous serions ravis de vous entendre.',
     'get_in_touch' => 'Entrer en contact',
@@ -156,7 +156,7 @@ return [
     'message' => 'Message',
     'send_message' => 'Envoyer le message',
     'phone' => 'Téléphone',
-    
+
     // Become Vendor
     'become_a_vendor' => 'Devenir Vendeur',
     'start_selling_intro' => 'Commencez votre activité avec Aquawasouk et touchez des milliers de clients.',
@@ -174,7 +174,7 @@ return [
     'country' => 'Pays',
     'agree_terms' => 'J\'accepte les termes et conditions',
     'submit_application' => 'Soumettre la demande',
-    
+
     // Vendors Page
     'our_trusted_vendors' => 'Nos vendeurs de confiance',
     'discover_quality_products' => 'Découvrez des produits de qualité auprès de vendeurs vérifiés',
@@ -183,7 +183,7 @@ return [
     'products_from' => 'Produits de',
     'no_products_yet' => 'Pas encore de produits',
     'vendor_no_products' => 'Ce vendeur n\'a pas encore listé de produits',
-    
+
     // Checkout
     'payment_method' => 'Méthode de paiement',
     'credit_card' => 'Carte de crédit',
@@ -196,7 +196,7 @@ return [
     'place_order' => 'Passer la commande',
     'processing' => 'Traitement...',
     'postal_code' => 'Code postal',
-    
+
     // Blog
     'blog' => 'Blog',
     'blog_management' => 'Gestion du Blog',
@@ -230,7 +230,7 @@ return [
     'delivery_address' => 'Adresse de livraison',
     'city_governorate' => 'Ville / Gouvernorat',
     'shipping_notes' => 'Remarques éventuelles (ex: étage, heure de livraison)',
-    'confirm_direct_order' => 'Confirmer la commande (Paiement à la livraison)',
+    'confirm_direct_order' => 'Commander',
     'unit_price' => 'Prix unitaire',
     'shipping_fee' => 'Frais de livraison',
     'free_shipping' => 'Gratuit',
@@ -264,5 +264,71 @@ return [
     'all_shops' => 'Toutes les boutiques',
     'open_shop_free' => 'Ouvrir ma boutique gratuitement',
     'search_shop_placeholder' => 'Rechercher une boutique par nom...',
+    'featured_products_title' => 'Produits Vedettes',
+    'most_wanted_this_week' => 'Les articles les plus demandés cette semaine',
+    'vendor_banner_title' => 'Vous vendez des produits en Tunisie ? Développez votre chiffre d\'affaires sur AquawaSouk !',
+    'vendor_banner_desc' => 'Créez votre boutique gratuitement en 2 minutes. Bénéficiez de milliers de visiteurs quotidiens, d\'un tableau de bord moderne et de la gestion simplifiée des commandes.',
+    'popular_departments' => 'Rayons Populaires',
+    'browse_by_theme' => 'Parcourez nos catégories par thématique',
+    '404_title' => 'Page Introuvable',
+    '404_meta_desc' => 'La page que vous recherchez n\'existe pas ou a été déplacée.',
+    '404_heading' => 'Oups ! Cette page s\'est perdue.',
+    '404_subtext' => 'La page que vous cherchez n\'existe pas, a été déplacée ou le lien est cassé. Pas de panique — retournez à l\'accueil et continuez vos achats !',
+    'go_home' => 'Retour à l\'accueil',
+
+    // Pages d'erreur
+    '403_title' => 'Accès Refusé',
+    '403_meta_desc' => 'Vous n\'avez pas la permission d\'accéder à cette page.',
+    '403_heading' => 'Accès refusé.',
+    '403_subtext' => 'Vous n\'avez pas les droits pour consulter cette page. Si vous pensez qu\'il s\'agit d\'une erreur, contactez-nous.',
+
+    '419_title' => 'Page Expirée',
+    '419_meta_desc' => 'Votre session a expiré. Veuillez actualiser la page et réessayer.',
+    '419_heading' => 'Session expirée.',
+    '419_subtext' => 'Votre session a expiré en raison d\'une inactivité prolongée. Veuillez actualiser la page et réessayer.',
+    '419_retry' => 'Actualiser la page',
+
+    '429_title' => 'Trop de Requêtes',
+    '429_meta_desc' => 'Vous avez envoyé trop de requêtes. Veuillez patienter avant de réessayer.',
+    '429_heading' => 'Doucement !',
+    '429_subtext' => 'Vous avez envoyé trop de requêtes en peu de temps. Veuillez patienter quelques instants avant de réessayer.',
+    '429_retry' => 'Réessayer',
+
+    '500_title' => 'Erreur Serveur',
+    '500_meta_desc' => 'Une erreur inattendue s\'est produite. Notre équipe travaille à la résoudre.',
+    '500_heading' => 'Une erreur s\'est produite.',
+    '500_subtext' => 'Une erreur inattendue est survenue sur notre serveur. Notre équipe a été informée et travaille à la résoudre. Veuillez réessayer dans quelques instants.',
+    '500_retry' => 'Réessayer',
+
+    '503_title' => 'En Maintenance',
+    '503_meta_desc' => 'AquawaSouk est en maintenance. Nous serons de retour très bientôt.',
+    '503_heading' => 'On revient vite !',
+    '503_subtext' => 'AquawaSouk est en maintenance planifiée pour vous offrir une meilleure expérience. Revenez dans quelques minutes.',
+    '503_retry' => 'Recharger',
+
+    // Vendor Directory & Filters
+    'sort_by' => 'Trier par',
+    'sort_products_desc' => 'Plus de produits',
+    'sort_name_asc' => 'Nom (A - Z)',
+    'sort_name_desc' => 'Nom (Z - A)',
+    'sort_latest' => 'Nouveaux partenaires',
+    'all_cities' => 'Toutes les villes',
+    'filter_by_city' => 'Gouvernorat / Ville',
+    'clear_filters' => 'Effacer les filtres',
+    'visit_shop' => 'Visiter la boutique',
+    'verified_partner' => 'Partenaire Vérifié',
+
+    // Live Search
+    'live_search_placeholder' => 'Rechercher un produit, une marque, une catégorie...',
+    'live_search_no_results' => 'Aucun produit trouvé',
+    'live_search_view_all' => 'Voir tous les résultats pour',
+    'quick_results' => 'Résultats rapides',
+
+    // Cart Toast & WhatsApp
+    'cart_added_toast_title' => 'Produit ajouté à votre panier !',
+    'cart_continue_shopping' => 'Continuer mes achats',
+    'cart_view_cart' => 'Voir mon panier',
+    'whatsapp_chat_support' => 'Besoin d\'aide ? Discutez avec nous sur WhatsApp',
+    'whatsapp_chat_prefill' => 'Bonjour AquawaSouk, j\'ai une question concernant un produit.',
 ];
 

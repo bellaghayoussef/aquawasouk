@@ -134,22 +134,48 @@ class VendorDashboardController extends Controller
         $vendor = auth()->user()->vendor;
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'discount_price' => 'nullable|numeric|min:0|lt:price',
-            'category_id' => 'required|exists:categories,id',
-            'stock' => 'required|integer|min:0',
-            'sku' => 'nullable|string|max:255|unique:products',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240', // 10MB each
-             'is_featured' => 'boolean',
+            'name'                      => 'required|string|max:255',
+            'description'               => 'required|string',
+            'price'                     => 'required|numeric|min:0',
+            'discount_price'            => 'nullable|numeric|min:0|lt:price',
+            'category_id'               => 'required|exists:categories,id',
+            'stock'                     => 'required|integer|min:0',
+            'sku'                       => 'nullable|string|max:255|unique:products',
+            'images.*'                  => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'is_featured'               => 'boolean',
+            'specifications'            => 'nullable|array',
+            'variations'                => 'nullable|array',
+            'variations.*.color'        => 'nullable|string|max:100',
+            'variations.*.size'         => 'nullable|string|max:50',
+            'variations.*.stock'        => 'nullable|integer|min:0',
+            'variations.*.price'        => 'nullable|numeric|min:0',
         ]);
 
-        $validated['vendor_id'] = $vendor->id;
-        $validated['slug'] = \Str::slug($validated['name']);
-        $validated['status'] = 'active';
+        $validated['vendor_id']     = $vendor->id;
+        $validated['slug']          = \Str::slug($validated['name']);
+        $validated['status']        = 'active';
+        $validated['specifications'] = $request->input('specifications') ?: null;
+
+        $variations = $request->input('variations', []);
+
+        // If variations are provided, sum their stock as the product total stock
+        if (!empty($variations)) {
+            $validated['stock'] = collect($variations)->sum(fn($v) => (int) ($v['stock'] ?? 0));
+        }
 
         $product = Product::create($validated);
+
+        // Store variations (colors & sizes)
+        foreach ($variations as $v) {
+            if (empty($v['color']) && empty($v['size'])) continue;
+            $product->variations()->create([
+                'color'  => $v['color']  ?? null,
+                'size'   => $v['size']   ?? null,
+                'stock'  => (int) ($v['stock'] ?? 0),
+                'price'  => !empty($v['price']) ? (float) $v['price'] : null,
+                'status' => 'active',
+            ]);
+        }
 
         // Handle multiple images upload with WebP conversion
         if ($request->hasFile('images')) {
@@ -157,13 +183,13 @@ class VendorDashboardController extends Controller
                 $imagePath = ImageService::storeAsWebp($image, 'products');
                 $product->images()->create([
                     'image_path' => $imagePath,
-                    'is_primary' => $index === 0, // First image is primary
+                    'is_primary' => $index === 0,
                     'sort_order' => $index,
                 ]);
             }
         }
 
-        return redirect()->route('vendor.products')->with('success', 'Product created successfully');
+        return redirect()->route('vendor.products')->with('success', 'Produit créé avec succès !');
     }
 
     public function editProduct(Product $product)
@@ -173,7 +199,8 @@ class VendorDashboardController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $product->load('images');
+        // Also load variations for the edit form
+        $product->load('images', 'variations');
 
         // Get categories with parent-child hierarchy
         $categories = Category::with('parent')
@@ -181,8 +208,8 @@ class VendorDashboardController extends Controller
             ->map(function ($category) {
                 return [
                     'id' => $category->id,
-                    'name' => $category->parent 
-                        ? $category->parent->name . ' → ' . $category->name 
+                    'name' => $category->parent
+                        ? $category->parent->name . ' → ' . $category->name
                         : $category->name,
                     'parent_id' => $category->parent_id,
                 ];
@@ -202,21 +229,56 @@ class VendorDashboardController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'discount_price' => 'nullable|numeric|min:0|lt:price',
-            'category_id' => 'required|exists:categories,id',
-            'stock' => 'required|integer|min:0',
-            'sku' => 'nullable|string|max:255|unique:products,sku,' . $product->id,
-            'status' => 'required|in:active,inactive',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'delete_images' => 'nullable|array',
-            'delete_images.*' => 'exists:product_images,id',
-            'is_featured' => 'boolean',
+            'name'                      => 'required|string|max:255',
+            'description'               => 'required|string',
+            'price'                     => 'required|numeric|min:0',
+            'discount_price'            => 'nullable|numeric|min:0|lt:price',
+            'category_id'               => 'required|exists:categories,id',
+            'stock'                     => 'required|integer|min:0',
+            'sku'                       => 'nullable|string|max:255|unique:products,sku,' . $product->id,
+            'status'                    => 'required|in:active,inactive',
+            'images.*'                  => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'delete_images'             => 'nullable|array',
+            'delete_images.*'           => 'exists:product_images,id',
+            'is_featured'               => 'boolean',
+            'specifications'            => 'nullable|array',
+            'variations'                => 'nullable|array',
+            'variations.*.color'        => 'nullable|string|max:100',
+            'variations.*.size'         => 'nullable|string|max:50',
+            'variations.*.stock'        => 'nullable|integer|min:0',
+            'variations.*.price'        => 'nullable|numeric|min:0',
+            'delete_variations'         => 'nullable|array',
+            'delete_variations.*'       => 'exists:product_variations,id',
         ]);
 
-        $validated['slug'] = \Str::slug($validated['name']);
+        $validated['slug']           = \Str::slug($validated['name']);
+        $validated['specifications'] = $request->input('specifications') ?: null;
+
+        $newVariations = $request->input('variations', []);
+
+        // Delete removed variations
+        $deleteVariations = $request->input('delete_variations', []);
+        if (!empty($deleteVariations)) {
+            $product->variations()->whereIn('id', $deleteVariations)->delete();
+        }
+
+        // Add new variations
+        foreach ($newVariations as $v) {
+            if (empty($v['color']) && empty($v['size'])) continue;
+            $product->variations()->create([
+                'color'  => $v['color']  ?? null,
+                'size'   => $v['size']   ?? null,
+                'stock'  => (int) ($v['stock'] ?? 0),
+                'price'  => !empty($v['price']) ? (float) $v['price'] : null,
+                'status' => 'active',
+            ]);
+        }
+
+        // Recalculate stock from variations if any remain
+        $product->refresh();
+        if ($product->variations()->exists()) {
+            $validated['stock'] = $product->variations()->sum('stock');
+        }
 
         $product->update($validated);
 
@@ -316,7 +378,11 @@ class VendorDashboardController extends Controller
 
         // Paginate manually
         $page = $request->get('page', 1);
-        $perPage = 20;
+        $view = $request->get('view', 'table');
+        $perPage = $view === 'kanban' ? 100 : 20;
+        if ($request->filled('per_page')) {
+            $perPage = max(5, min(200, (int) $request->per_page));
+        }
         $offset = ($page - 1) * $perPage;
         
         $paginatedOrders = new \Illuminate\Pagination\LengthAwarePaginator(
@@ -330,7 +396,7 @@ class VendorDashboardController extends Controller
         return Inertia::render('Vendor/Orders', [
             'orders' => $paginatedOrders,
             'vendor' => $vendor,
-            'filters' => $request->only(['search', 'status', 'date_from', 'date_to']),
+            'filters' => $request->only(['search', 'status', 'date_from', 'date_to', 'view', 'per_page']),
         ]);
     }
 
@@ -410,6 +476,9 @@ class VendorDashboardController extends Controller
     {
         // Ensure the order item belongs to the vendor
         if ($orderItem->vendor_id !== auth()->user()->vendor->id) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Action non autorisée.'], 403);
+            }
             abort(403, 'Unauthorized action.');
         }
 
@@ -418,12 +487,15 @@ class VendorDashboardController extends Controller
             'update_all' => 'boolean',
         ]);
 
-        if ($request->boolean('update_all')) {
+        $updateAll = $request->has('update_all') ? $request->boolean('update_all') : true;
+
+        if ($updateAll) {
             // Update all items for this order and vendor
             OrderItem::where('order_id', $orderItem->order_id)
                 ->where('vendor_id', auth()->user()->vendor->id)
                 ->update(['status' => $request->status]);
-                Order::where('id', $orderItem->order_id)->update(['status' => $request->status]);
+
+            Order::where('id', $orderItem->order_id)->update(['status' => $request->status]);
 
             // Send email & in-app notification to customer
             try {
@@ -440,7 +512,23 @@ class VendorDashboardController extends Controller
             $orderItem->update(['status' => $request->status]);
         }
 
-        return back()->with('success', 'Order status updated successfully');
+        $statusLabels = [
+            'pending' => 'En attente',
+            'processing' => 'En préparation',
+            'shipped' => 'Expédiée',
+            'delivered' => 'Livrée',
+            'cancelled' => 'Annulée',
+        ];
+        $msg = "Statut de la commande mis à jour : " . ($statusLabels[$request->status] ?? $request->status);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+            ]);
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function settings()

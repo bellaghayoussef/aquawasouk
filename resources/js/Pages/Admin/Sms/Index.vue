@@ -7,6 +7,10 @@ const props = defineProps({
     logs: Object,
     stats: Object,
     config: Object,
+    vendorsList: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 // Tab state: 'send' | 'test' | 'settings'
@@ -14,10 +18,57 @@ const activeTab = ref('send');
 
 // Composer Form
 const sendForm = useForm({
-    recipient_type: 'custom', // custom, vendors, customers, all
+    recipient_type: 'selected_vendors', // selected_vendors, custom, vendors, customers, all
     custom_recipients: '',
+    selected_vendor_ids: [],
+    activate_vendors: true,
     message: '',
 });
+
+// Vendor selection search & filters
+const vendorSearch = ref('');
+const vendorStatusFilter = ref('all'); // 'all', 'pending', 'active'
+
+const filteredVendors = computed(() => {
+    let list = props.vendorsList || [];
+    if (vendorStatusFilter.value !== 'all') {
+        list = list.filter(v => v.status === vendorStatusFilter.value);
+    }
+    if (vendorSearch.value.trim()) {
+        const q = vendorSearch.value.toLowerCase().trim();
+        list = list.filter(v => 
+            (v.shop_name && v.shop_name.toLowerCase().includes(q)) ||
+            (v.owner_name && v.owner_name.toLowerCase().includes(q)) ||
+            (v.phone && v.phone.includes(q)) ||
+            (v.owner_email && v.owner_email.toLowerCase().includes(q))
+        );
+    }
+    return list;
+});
+
+const isAllVisibleSelected = computed(() => {
+    if (filteredVendors.value.length === 0) return false;
+    return filteredVendors.value.every(v => sendForm.selected_vendor_ids.includes(v.id));
+});
+
+const toggleSelectAllVisible = () => {
+    if (isAllVisibleSelected.value) {
+        const visibleIds = filteredVendors.value.map(v => v.id);
+        sendForm.selected_vendor_ids = sendForm.selected_vendor_ids.filter(id => !visibleIds.includes(id));
+    } else {
+        const newIds = new Set(sendForm.selected_vendor_ids);
+        filteredVendors.value.forEach(v => newIds.add(v.id));
+        sendForm.selected_vendor_ids = Array.from(newIds);
+    }
+};
+
+const selectAllPending = () => {
+    vendorStatusFilter.value = 'pending';
+    const pendingIds = (props.vendorsList || []).filter(v => v.status === 'pending').map(v => v.id);
+    sendForm.selected_vendor_ids = pendingIds;
+    // Auto-fill account activated template
+    applyTemplate(templates[0]);
+};
 
 // Settings Form
 const settingsForm = useForm({
@@ -41,20 +92,24 @@ const smsCount = computed(() => {
 // Quick templates
 const templates = [
     {
-        label: '📦 Suivi Commande',
-        text: 'Bonjour ! Votre commande sur AquawaSouk est confirmee et en cours de preparation. Livraison sous 24-48h avec paiement en especes. Merci !',
+        label: '✅ Compte Vendeur Activé (FR)',
+        text: 'Cher Partenaire AquawaSouk, votre compte vendeur a ete active avec succes ! Connectez-vous des maintenant pour ajouter vos produits : https://aquawasouk.com/login',
     },
     {
-        label: '🎉 Promotion Flash',
-        text: 'AquawaSouk : Vente flash exclusive aujourd\'hui ! Profitez de remises jusqu\'a -30% sur une large selection de produits. A bientot !',
+        label: '✅ تفعيل حساب البائع (AR)',
+        text: 'شريكنا العزيز في AquawaSouk، تم تفعيل حساب البائع الخاص بك بنجاح! يمكنك الان تسجيل الدخول واضافة منتجاتك: https://aquawasouk.com/login',
+    },
+    {
+        label: '📦 Suivi Commande',
+        text: 'Bonjour ! Votre commande sur AquawaSouk est confirmee et en cours de preparation. Livraison sous 24-48h avec paiement en especes. Merci !',
     },
     {
         label: '🏪 Alerte Vendeur',
         text: 'Cher Partenaire AquawaSouk, vous avez une nouvelle commande en attente sur votre tableau de bord. Merci de la traiter rapidement.',
     },
     {
-        label: '📞 Service Client',
-        text: 'Bonjour, notre equipe service client AquawaSouk a tente de vous joindre. Vous pouvez nous rappeler au +216 26 260 262.',
+        label: '🎉 Promotion Flash',
+        text: 'AquawaSouk : Vente flash exclusive aujourd\'hui ! Profitez de remises jusqu\'a -30% sur une large selection de produits. A bientot !',
     },
 ];
 
@@ -64,6 +119,11 @@ const applyTemplate = (tpl) => {
 
 // Handlers
 const submitSend = () => {
+    if (sendForm.recipient_type === 'selected_vendors' && sendForm.selected_vendor_ids.length === 0) {
+        alert('Veuillez sélectionner au moins un vendeur dans la liste.');
+        return;
+    }
+
     sendForm.post(route('admin.sms.send'), {
         preserveScroll: true,
         onSuccess: () => {
@@ -199,11 +259,21 @@ const submitTest = () => {
                     <form @submit.prevent="submitSend" class="space-y-5">
                         <!-- Recipient Type Radios -->
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-2">Destinataires</label>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <label class="block text-xs font-bold text-slate-700 mb-2">Destinataires du message</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                 <label 
-                                    :class="sendForm.recipient_type === 'custom' ? 'border-sky-500 bg-sky-50/50 text-sky-700' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
-                                    class="border-2 rounded-2xl p-3 flex flex-col items-center justify-center cursor-pointer text-center transition"
+                                    :class="sendForm.recipient_type === 'selected_vendors' ? 'border-sky-500 bg-sky-50/70 text-sky-700 shadow-xs ring-2 ring-sky-500/20' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                                    class="border-2 rounded-2xl p-2.5 flex flex-col items-center justify-center cursor-pointer text-center transition"
+                                >
+                                    <input type="radio" value="selected_vendors" v-model="sendForm.recipient_type" class="sr-only" />
+                                    <span class="text-base mb-1">🎯</span>
+                                    <span class="text-xs font-bold">Vendeurs Choisis</span>
+                                    <span class="text-[10px] text-sky-600 font-extrabold mt-0.5">({{ sendForm.selected_vendor_ids.length }} sélec.)</span>
+                                </label>
+
+                                <label 
+                                    :class="sendForm.recipient_type === 'custom' ? 'border-sky-500 bg-sky-50/70 text-sky-700 shadow-xs ring-2 ring-sky-500/20' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                                    class="border-2 rounded-2xl p-2.5 flex flex-col items-center justify-center cursor-pointer text-center transition"
                                 >
                                     <input type="radio" value="custom" v-model="sendForm.recipient_type" class="sr-only" />
                                     <span class="text-base mb-1">✍️</span>
@@ -211,31 +281,177 @@ const submitTest = () => {
                                 </label>
 
                                 <label 
-                                    :class="sendForm.recipient_type === 'vendors' ? 'border-sky-500 bg-sky-50/50 text-sky-700' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
-                                    class="border-2 rounded-2xl p-3 flex flex-col items-center justify-center cursor-pointer text-center transition"
+                                    :class="sendForm.recipient_type === 'vendors' ? 'border-sky-500 bg-sky-50/70 text-sky-700 shadow-xs ring-2 ring-sky-500/20' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                                    class="border-2 rounded-2xl p-2.5 flex flex-col items-center justify-center cursor-pointer text-center transition"
                                 >
                                     <input type="radio" value="vendors" v-model="sendForm.recipient_type" class="sr-only" />
                                     <span class="text-base mb-1">🏪</span>
-                                    <span class="text-xs font-bold">Vendeurs ({{ stats.vendors_count }})</span>
+                                    <span class="text-xs font-bold">Tous Vendeurs</span>
+                                    <span class="text-[10px] text-slate-400 font-semibold mt-0.5">({{ stats.vendors_count }})</span>
                                 </label>
 
                                 <label 
-                                    :class="sendForm.recipient_type === 'customers' ? 'border-sky-500 bg-sky-50/50 text-sky-700' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
-                                    class="border-2 rounded-2xl p-3 flex flex-col items-center justify-center cursor-pointer text-center transition"
+                                    :class="sendForm.recipient_type === 'customers' ? 'border-sky-500 bg-sky-50/70 text-sky-700 shadow-xs ring-2 ring-sky-500/20' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                                    class="border-2 rounded-2xl p-2.5 flex flex-col items-center justify-center cursor-pointer text-center transition"
                                 >
                                     <input type="radio" value="customers" v-model="sendForm.recipient_type" class="sr-only" />
                                     <span class="text-base mb-1">👥</span>
-                                    <span class="text-xs font-bold">Clients ({{ stats.customers_count }})</span>
+                                    <span class="text-xs font-bold">Clients</span>
+                                    <span class="text-[10px] text-slate-400 font-semibold mt-0.5">({{ stats.customers_count }})</span>
                                 </label>
 
                                 <label 
-                                    :class="sendForm.recipient_type === 'all' ? 'border-sky-500 bg-sky-50/50 text-sky-700' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
-                                    class="border-2 rounded-2xl p-3 flex flex-col items-center justify-center cursor-pointer text-center transition"
+                                    :class="sendForm.recipient_type === 'all' ? 'border-sky-500 bg-sky-50/70 text-sky-700 shadow-xs ring-2 ring-sky-500/20' : 'border-slate-200 hover:bg-slate-50 text-slate-700'"
+                                    class="border-2 rounded-2xl p-2.5 flex flex-col items-center justify-center cursor-pointer text-center transition"
                                 >
                                     <input type="radio" value="all" v-model="sendForm.recipient_type" class="sr-only" />
                                     <span class="text-base mb-1">📢</span>
-                                    <span class="text-xs font-bold">Tous</span>
+                                    <span class="text-xs font-bold">Diffusion Globale</span>
+                                    <span class="text-[10px] text-slate-400 font-semibold mt-0.5">Tous</span>
                                 </label>
+                            </div>
+                        </div>
+
+                        <!-- Selected Vendors Interactive Selection Panel -->
+                        <div v-if="sendForm.recipient_type === 'selected_vendors'" class="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3.5">
+                            
+                            <!-- Search & Status Filters -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="relative flex-1">
+                                    <input 
+                                        type="text" 
+                                        v-model="vendorSearch" 
+                                        placeholder="Filtrer par boutique, nom du gérant ou tél..." 
+                                        class="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-sky-500 outline-hidden font-medium"
+                                    />
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                                </div>
+
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <button 
+                                        type="button" 
+                                        @click="vendorStatusFilter = 'all'" 
+                                        :class="vendorStatusFilter === 'all' ? 'bg-slate-800 text-white shadow-2xs' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'"
+                                        class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
+                                    >
+                                        Tous ({{ vendorsList.length }})
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        @click="vendorStatusFilter = 'pending'" 
+                                        :class="vendorStatusFilter === 'pending' ? 'bg-amber-500 text-white shadow-2xs' : 'bg-white text-amber-700 hover:bg-amber-50 border border-slate-200'"
+                                        class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
+                                    >
+                                        ⏳ En attente ({{ vendorsList.filter(v => v.status === 'pending').length }})
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        @click="vendorStatusFilter = 'active'" 
+                                        :class="vendorStatusFilter === 'active' ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-slate-200'"
+                                        class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
+                                    >
+                                        ✅ Actifs ({{ vendorsList.filter(v => v.status === 'active').length }})
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Fast Action Bar -->
+                            <div class="flex flex-wrap items-center justify-between text-xs gap-2 pt-1 border-t border-slate-200">
+                                <div class="flex items-center gap-2.5">
+                                    <button 
+                                        type="button" 
+                                        @click="toggleSelectAllVisible" 
+                                        class="text-sky-600 font-bold hover:underline cursor-pointer"
+                                    >
+                                        {{ isAllVisibleSelected ? 'Désélectionner tout' : 'Sélectionner tous les ' + filteredVendors.length + ' affichés' }}
+                                    </button>
+                                    <span class="text-slate-300">•</span>
+                                    <button 
+                                        type="button" 
+                                        @click="selectAllPending" 
+                                        class="text-amber-700 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                                    >
+                                        <span>⚡</span> <span>Sélectionner tous les "En attente"</span>
+                                    </button>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <span class="font-extrabold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-xs">
+                                        📌 {{ sendForm.selected_vendor_ids.length }} sélectionné(s)
+                                    </span>
+                                    <button 
+                                        v-if="sendForm.selected_vendor_ids.length > 0"
+                                        type="button" 
+                                        @click="sendForm.selected_vendor_ids = []" 
+                                        class="text-[11px] text-slate-400 hover:text-rose-600 font-medium cursor-pointer"
+                                    >
+                                        Effacer
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Auto-Activation Checkbox -->
+                            <div class="p-3 bg-gradient-to-r from-amber-50 to-emerald-50 rounded-xl border border-amber-200/90 flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2.5">
+                                    <input 
+                                        type="checkbox" 
+                                        id="activate_vendors_cb" 
+                                        v-model="sendForm.activate_vendors" 
+                                        class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 cursor-pointer"
+                                    />
+                                    <label for="activate_vendors_cb" class="text-xs font-bold text-slate-800 cursor-pointer select-none">
+                                        ⚡ Activer automatiquement le statut des vendeurs sélectionnés lors de l'envoi
+                                    </label>
+                                </div>
+                                <span class="hidden sm:inline-block text-[11px] font-semibold text-slate-500">
+                                    Passe le statut à "Actif"
+                                </span>
+                            </div>
+
+                            <!-- Scrollable Vendors Checklist -->
+                            <div class="max-h-64 overflow-y-auto divide-y divide-slate-100 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                                <div 
+                                    v-for="v in filteredVendors" 
+                                    :key="v.id"
+                                    class="p-2.5 hover:bg-slate-50 flex items-center justify-between gap-3 transition"
+                                    :class="sendForm.selected_vendor_ids.includes(v.id) ? 'bg-sky-50/40' : ''"
+                                >
+                                    <label class="flex items-center gap-3 cursor-pointer flex-1 truncate select-none">
+                                        <input 
+                                            type="checkbox" 
+                                            :value="v.id" 
+                                            v-model="sendForm.selected_vendor_ids" 
+                                            class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 cursor-pointer"
+                                        />
+                                        <div class="truncate">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-black text-xs text-slate-900 truncate">{{ v.shop_name }}</span>
+                                                <span 
+                                                    class="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider"
+                                                    :class="v.status === 'active' ? 'bg-emerald-100 text-emerald-800' : (v.status === 'pending' ? 'bg-amber-100 text-amber-800 animate-pulse' : 'bg-slate-100 text-slate-700')"
+                                                >
+                                                    {{ v.status === 'active' ? 'Actif' : (v.status === 'pending' ? 'En attente' : v.status) }}
+                                                </span>
+                                            </div>
+                                            <p class="text-[11px] text-slate-500 truncate">
+                                                {{ v.owner_name }} <span v-if="v.owner_email" class="text-slate-400">({{ v.owner_email }})</span>
+                                            </p>
+                                        </div>
+                                    </label>
+
+                                    <div class="text-right shrink-0">
+                                        <span v-if="v.phone" class="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-lg">
+                                            {{ v.phone }}
+                                        </span>
+                                        <span v-else class="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200">
+                                            ⚠️ Pas de tél.
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div v-if="filteredVendors.length === 0" class="p-8 text-center text-slate-400 text-xs">
+                                    Aucun vendeur ne correspond à votre recherche.
+                                </div>
                             </div>
                         </div>
 

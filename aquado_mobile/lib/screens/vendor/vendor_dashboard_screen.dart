@@ -31,7 +31,12 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
 
     try {
       final dashboard = await VendorService.getDashboard();
-      final recent = await VendorService.getRecentOrders(limit: 5);
+      List<OrderItem> recent = [];
+      try {
+        recent = await VendorService.getRecentOrders(limit: 5);
+      } catch (e) {
+        debugPrint('Recent orders failed to load: $e');
+      }
 
       if (mounted) {
         setState(() {
@@ -109,7 +114,8 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryColor.withOpacity(0.25),
+                              color:
+                                  AppTheme.primaryColor.withValues(alpha: 0.25),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -123,7 +129,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: const Icon(
@@ -279,7 +285,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -303,7 +309,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 18),
@@ -395,7 +401,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -474,62 +480,73 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           final order = _recentOrders[index];
           final imageUrl = ApiConfig.getImageUrl(order.product?.image);
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    color: const Color(0xFFF8FAFC),
-                    child: imageUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => const Icon(
-                                Icons.shopping_bag_outlined,
-                                size: 20),
-                          )
-                        : const Icon(Icons.shopping_bag_outlined, size: 20),
-                  ),
+          return InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const VendorOrdersScreen(),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Commande #${order.orderId}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
+              ).then((_) => _loadDashboard());
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      color: const Color(0xFFF8FAFC),
+                      child: imageUrl.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => const Icon(
+                                  Icons.shopping_bag_outlined,
+                                  size: 20),
+                            )
+                          : const Icon(Icons.shopping_bag_outlined, size: 20),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Commande #${order.orderId}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        order.product?.name ?? 'Article',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
+                        const SizedBox(height: 2),
+                        Text(
+                          order.product?.name ?? 'Article',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Text(
-                  '${order.price.toStringAsFixed(2)} DT',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.primaryColor,
+                  Text(
+                    '${order.price.toStringAsFixed(2)} DT',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primaryColor,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },

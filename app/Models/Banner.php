@@ -29,8 +29,14 @@ class Banner extends Model
     public function getImageUrlAttribute()
     {
         if ($this->image_path) {
+            if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
+                return $this->image_path;
+            }
+            if (str_starts_with($this->image_path, 'uploads/')) {
+                return asset($this->image_path);
+            }
             return asset('uploads/' . $this->image_path);
         }
-        return null; // Or return a placeholder image URL
+        return file_exists(public_path('uploads/banner.png')) ? asset('uploads/banner.png') : null;
     }
 }

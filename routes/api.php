@@ -176,6 +176,16 @@ Route::prefix('v1')->group(function () {
                 Route::put('/mark-all-read', [VendorController::class, 'markAllNotificationsAsRead']);
             });
         });
+
+        // Admin Routes (Exclusively for Admins)
+        Route::middleware('admin')->prefix('admin')->group(function () {
+            Route::prefix('vendors')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Api\AdminVendorController::class, 'index']);
+                Route::get('/stats', [\App\Http\Controllers\Api\AdminVendorController::class, 'stats']);
+                Route::get('/{vendor}', [\App\Http\Controllers\Api\AdminVendorController::class, 'show']);
+                Route::put('/{vendor}/status', [\App\Http\Controllers\Api\AdminVendorController::class, 'updateStatus']);
+            });
+        });
     });
 });
 

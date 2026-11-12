@@ -65,10 +65,15 @@ class SitemapController extends Controller
         $item->addChild('g:description', htmlspecialchars($product->description), 'http://base.google.com/ns/1.0');
         $item->addChild('g:link', url('/product/' . $product->slug), 'http://base.google.com/ns/1.0');
 
-        if ($product->primaryImage) {
+        if ($product->primaryImage && !empty($product->primaryImage->image_path)) {
+            $imagePath = $product->primaryImage->image_path;
+            $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                ? $imagePath
+                : url('/uploads/' . ltrim(preg_replace('#^/?uploads/#', '', $imagePath), '/'));
+
             $item->addChild(
                 'g:image_link',
-                url('/uploads/' . $product->primaryImage->image_path),
+                $imageUrl,
                 'http://base.google.com/ns/1.0'
             );
         }

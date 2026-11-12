@@ -25,34 +25,80 @@ class CartController extends Controller
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'required|integer|min:1',
+            'color' => 'nullable|string|max:100',
+            'size' => 'nullable|string|max:50',
+            'variation_id' => 'nullable|exists:product_variations,id',
         ]);
 
-        $product = Product::findOrFail($request->product_id);
+        $product = Product::with('variations')->findOrFail($request->product_id);
         
-        // Check stock
-        if ($product->stock < $request->quantity) {
-            return back()->with('error', 'Insufficient stock available');
+        $variation = null;
+        if ($request->filled('variation_id')) {
+            $variation = $product->variations()->find($request->variation_id);
+        }
+
+        $stockToCheck = $variation ? $variation->stock : $product->stock;
+        if ($stockToCheck < $request->quantity) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => __('messages.out_of_stock')], 422);
+            }
+            return back()->with('error', __('messages.out_of_stock'));
         }
 
         $cart = $this->getOrCreateCart();
 
-        // Check if product already in cart
-        $cartItem = $cart->items()->where('product_id', $product->id)->first();
+        $color = $request->input('color') ?: ($variation ? $variation->color : null);
+        $size = $request->input('size') ?: ($variation ? $variation->size : null);
+
+        // Check if product with same variation already in cart
+        $query = $cart->items()->where('product_id', $product->id);
+        if ($color) {
+            $query->where('color', $color);
+        } else {
+            $query->whereNull('color');
+        }
+        if ($size) {
+            $query->where('size', $size);
+        } else {
+            $query->whereNull('size');
+        }
+        $cartItem = $query->first();
+
+        $price = ($variation && $variation->price > 0)
+            ? (float) $variation->price
+            : ($product->discount_price > 0 ? (float) $product->discount_price : (float) $product->price);
 
         if ($cartItem) {
             $cartItem->update([
                 'quantity' => $cartItem->quantity + $request->quantity,
-                'price' => $product->discount_price ? $product->discount_price : $product->price,
+                'price' => $price,
             ]);
         } else {
             $cart->items()->create([
                 'product_id' => $product->id,
                 'quantity' => $request->quantity,
-                'price' => $product->discount_price ? $product->discount_price : $product->price,
+                'price' => $price,
+                'color' => $color,
+                'size' => $size,
             ]);
         }
 
-        return back()->with('success', 'Product added to cart');
+        $totalCount = $cart->items()->sum('quantity');
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => __('messages.cart_added_toast_title'),
+                'cart_count' => $totalCount,
+                'product_name' => $product->name,
+                'product_price' => $price,
+            ]);
+        }
+
+        return back()->with('cart_added_toast', [
+            'name' => $product->name,
+            'price' => $price,
+        ])->with('success', __('messages.cart_added_toast_title'));
     }
 
     public function update(Request $request, CartItem $cartItem)

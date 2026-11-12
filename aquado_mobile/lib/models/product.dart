@@ -16,6 +16,7 @@ class Product {
   final int vendorId;
   final Map<String, dynamic>? specifications;
   final List<ProductImage>? images;
+  final List<ProductVariation>? variations;
   final Category? category;
   final Vendor? vendor;
   final double? averageRating;
@@ -36,14 +37,20 @@ class Product {
     required this.vendorId,
     this.specifications,
     this.images,
+    this.variations,
     this.category,
     this.vendor,
     this.averageRating,
     this.reviewsCount,
   });
 
-  factory Product.fromJson(Map<String, dynamic> json) {
+  factory Product.fromJson(Map<String, dynamic> rawJson) {
     // Helper function to safely parse nested JSON
+    Map<String, dynamic> json = rawJson;
+    if (rawJson.containsKey('product') && rawJson['product'] is Map<String, dynamic>) {
+      json = rawJson['product'] as Map<String, dynamic>;
+    }
+
     Map<String, dynamic>? parseJsonMap(dynamic value) {
       if (value == null) return null;
       if (value is Map<String, dynamic>) return value;
@@ -52,7 +59,6 @@ class Product {
           final decoded = jsonDecode(value);
           return decoded is Map<String, dynamic> ? decoded : null;
         } catch (e) {
-          print('⚠️ Failed to parse JSON string: $e');
           return null;
         }
       }
@@ -67,7 +73,6 @@ class Product {
           final decoded = jsonDecode(value);
           return decoded is List ? decoded : null;
         } catch (e) {
-          print('⚠️ Failed to parse JSON array: $e');
           return null;
         }
       }
@@ -98,23 +103,23 @@ class Product {
     }
 
     return Product(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      slug: json['slug'] as String,
+      id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name'] as String? ?? '',
+      slug: json['slug'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      price: double.parse(json['price'].toString()),
+      price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
       discountPrice: json['discount_price'] != null
-          ? double.parse(json['discount_price'].toString())
+          ? double.tryParse(json['discount_price'].toString())
           : null,
-      stock: json['stock'] as int? ?? 0,
+      stock: json['stock'] is int ? json['stock'] as int : int.tryParse(json['stock']?.toString() ?? '0') ?? 0,
       image: getPrimaryImagePath(),
       isFeatured: json['is_featured'] == 1 || json['is_featured'] == true,
       // Handle both 'is_active' boolean and 'status' string
       isActive: json['is_active'] != null
           ? (json['is_active'] == 1 || json['is_active'] == true)
           : (json['status'] == 'active'),
-      categoryId: json['category_id'] as int,
-      vendorId: json['vendor_id'] as int,
+      categoryId: json['category_id'] is int ? json['category_id'] as int : int.tryParse(json['category_id']?.toString() ?? '0') ?? 0,
+      vendorId: json['vendor_id'] is int ? json['vendor_id'] as int : int.tryParse(json['vendor_id']?.toString() ?? '0') ?? 0,
       specifications: parseJsonMap(json['specifications']),
       images: () {
         final imagesList = parseJsonList(json['images']);
@@ -126,7 +131,18 @@ class Product {
                   ))
               .toList();
         } catch (e) {
-          print('⚠️ Error parsing images: $e');
+          return null;
+        }
+      }(),
+      variations: () {
+        final vList = parseJsonList(json['variations']);
+        if (vList == null) return null;
+        try {
+          return vList
+              .whereType<Map<String, dynamic>>()
+              .map((v) => ProductVariation.fromJson(v))
+              .toList();
+        } catch (e) {
           return null;
         }
       }(),
@@ -136,7 +152,6 @@ class Product {
         try {
           return Category.fromJson(categoryData);
         } catch (e) {
-          print('⚠️ Error parsing category: $e');
           return null;
         }
       }(),
@@ -146,12 +161,11 @@ class Product {
         try {
           return Vendor.fromJson(vendorData);
         } catch (e) {
-          print('⚠️ Error parsing vendor: $e');
           return null;
         }
       }(),
       averageRating: json['average_rating'] != null
-          ? double.parse(json['average_rating'].toString())
+          ? double.tryParse(json['average_rating'].toString())
           : null,
       reviewsCount: json['reviews_count'] as int?,
     );
@@ -162,6 +176,62 @@ class Product {
   int get discountPercentage =>
       hasDiscount ? (((price - finalPrice) / price) * 100).round() : 0;
   bool get inStock => stock > 0;
+
+  List<String> get availableColors {
+    if (variations != null && variations!.isNotEmpty) {
+      final colors = variations!
+          .map((v) => v.color?.trim())
+          .where((c) => c != null && c.isNotEmpty)
+          .cast<String>()
+          .toSet()
+          .toList();
+      if (colors.isNotEmpty) return colors;
+    }
+    // Fallback to specifications
+    if (specifications != null) {
+      for (var key in ['colors', 'couleurs', 'couleur', 'color']) {
+        if (specifications!.containsKey(key)) {
+          final val = specifications![key];
+          if (val is List) {
+            return val.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+          } else if (val is String && val.contains(',')) {
+            return val.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+          } else if (val is String && val.trim().isNotEmpty) {
+            return [val.trim()];
+          }
+        }
+      }
+    }
+    return [];
+  }
+
+  List<String> get availableSizes {
+    if (variations != null && variations!.isNotEmpty) {
+      final sizes = variations!
+          .map((v) => v.size?.trim())
+          .where((s) => s != null && s.isNotEmpty)
+          .cast<String>()
+          .toSet()
+          .toList();
+      if (sizes.isNotEmpty) return sizes;
+    }
+    // Fallback to specifications
+    if (specifications != null) {
+      for (var key in ['sizes', 'tailles', 'taille', 'size']) {
+        if (specifications!.containsKey(key)) {
+          final val = specifications![key];
+          if (val is List) {
+            return val.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+          } else if (val is String && val.contains(',')) {
+            return val.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+          } else if (val is String && val.trim().isNotEmpty) {
+            return [val.trim()];
+          }
+        }
+      }
+    }
+    return [];
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -179,10 +249,67 @@ class Product {
       'vendor_id': vendorId,
       'specifications': specifications,
       'images': images?.map((x) => x.toJson()).toList(),
+      'variations': variations?.map((x) => x.toJson()).toList(),
       'category': category?.toJson(),
       'vendor': vendor?.toJson(),
       'average_rating': averageRating,
       'reviews_count': reviewsCount,
+    };
+  }
+}
+
+class ProductVariation {
+  final int id;
+  final int productId;
+  final String? sku;
+  final String? color;
+  final String? size;
+  final double price;
+  final int stock;
+  final String status;
+  final String? ecomnessCode;
+  final String? image;
+
+  ProductVariation({
+    required this.id,
+    required this.productId,
+    this.sku,
+    this.color,
+    this.size,
+    required this.price,
+    required this.stock,
+    required this.status,
+    this.ecomnessCode,
+    this.image,
+  });
+
+  factory ProductVariation.fromJson(Map<String, dynamic> json) {
+    return ProductVariation(
+      id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      productId: json['product_id'] is int ? json['product_id'] as int : int.tryParse(json['product_id']?.toString() ?? '0') ?? 0,
+      sku: json['sku']?.toString(),
+      color: json['color']?.toString(),
+      size: json['size']?.toString(),
+      price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
+      stock: json['stock'] is int ? json['stock'] as int : int.tryParse(json['stock']?.toString() ?? '0') ?? 0,
+      status: json['status']?.toString() ?? 'active',
+      ecomnessCode: json['ecomness_code']?.toString(),
+      image: json['image'] != null ? ApiConfig.getImageUrl(json['image'].toString()) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'product_id': productId,
+      'sku': sku,
+      'color': color,
+      'size': size,
+      'price': price,
+      'stock': stock,
+      'status': status,
+      'ecomness_code': ecomnessCode,
+      'image': image,
     };
   }
 }
